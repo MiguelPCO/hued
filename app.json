@@ -31,7 +31,8 @@
     "plugins": [
       "expo-router",
       "@sentry/react-native",
-      "expo-localization"
+      "expo-localization",
+      "expo-sqlite"
     ]
   }
 }
