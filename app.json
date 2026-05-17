@@ -23,7 +23,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,7 +37,19 @@
       "expo-router",
       "@sentry/react-native",
       "expo-localization",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Hued necesita la cámara para capturar fotos y crear paletas de colores."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Hued necesita acceso a tu galería para crear paletas desde tus fotos."
+        }
+      ]
     ]
   }
 }
