@@ -1,3 +1,4 @@
+// expo-file-system v19 (SDK 54) moved the imperative API (documentDirectory, copyAsync, etc.) to /legacy
 import * as FileSystem from 'expo-file-system/legacy';
 import { monotonicFactory } from 'ulidx';
 
@@ -44,7 +45,9 @@ function rowToPalette(row: PaletteRow): Palette {
 
 export async function savePalette(params: SavePaletteParams): Promise<Palette> {
   const id = ulid();
-  const dir = `${FileSystem.documentDirectory}palettes/${id}/`;
+  const baseDir = FileSystem.documentDirectory;
+  if (!baseDir) throw new Error('FileSystem.documentDirectory is null');
+  const dir = `${baseDir}palettes/${id}/`;
 
   await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
   await FileSystem.copyAsync({ from: params.imageUri, to: `${dir}full.jpg` });

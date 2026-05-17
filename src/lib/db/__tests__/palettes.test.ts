@@ -114,6 +114,8 @@ describe('getPalette', () => {
 });
 
 describe('listPalettes', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('returns empty array when table is empty', async () => {
     mockDb.getAllAsync.mockResolvedValue([]);
     const palettes = await listPalettes();
