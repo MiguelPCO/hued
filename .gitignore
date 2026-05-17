@@ -49,3 +49,7 @@ yarn-error.*
 
 # IDE
 .idea/
+
+# autoskills (AI skill files — not project code)
+.agents/
+.kiro/
