@@ -1,17 +1,27 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SkiaSmokeTest } from '@/components/test/SkiaSmokeTest';
 import { launchGalleryPicker } from '@/components/capture/GalleryPicker';
+import { PaletteGrid } from '@/components/palette/PaletteGrid';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { listPalettes } from '@/lib/db/palettes';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 
 export default function HomeScreen() {
+  const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
   const [picking, setPicking] = useState(false);
   const [galleryDenied, setGalleryDenied] = useState(false);
+
+  useEffect(() => {
+    listPalettes().then((p) => setHasPalettes(p.length > 0));
+  }, []);
+
+  const handlePressPalette = useCallback((id: string) => {
+    router.push({ pathname: '/palette/[id]', params: { id } });
+  }, []);
 
   async function handleGallery() {
     if (picking) return;
@@ -33,45 +43,51 @@ export default function HomeScreen() {
     router.push('/(tabs)/capture');
   }
 
+  if (hasPalettes === null) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingBox]}>
+        <ActivityIndicator color={Colors.accent} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text variant="h1">Hued</Text>
-        <Text variant="small" color={Colors.textSecondary}>
-          Tus paletas
-        </Text>
+        <Text variant="small" color={Colors.textSecondary}>Tus paletas</Text>
       </View>
 
-      {/* Sprint 0 Day 3: Skia smoke test — remove when Sprint 4 PaletteGrid lands */}
-      <SkiaSmokeTest />
-
-      {/* Empty state — replace with PaletteGrid in Sprint 4 */}
-      <View style={styles.emptyState}>
-        <Text variant="h3" style={styles.centered}>Sin paletas todavía</Text>
-        <Text variant="body" color={Colors.textSecondary} style={styles.centered}>
-          Captura una foto o elige de tu galería para crear tu primera paleta.
-        </Text>
-        <View style={styles.emptyActions}>
-          <View style={styles.actionItem}>
-            <Button label="Cámara" onPress={handleCamera} variant="primary" fullWidth />
-          </View>
-          <View style={styles.actionItem}>
-            {picking ? (
-              <View style={styles.loadingBtn}>
-                <ActivityIndicator size="small" color={Colors.accent} />
-                <Text variant="small" color={Colors.textSecondary}>Abriendo...</Text>
-              </View>
-            ) : (
-              <Button label="Galería" onPress={handleGallery} variant="secondary" fullWidth />
-            )}
-          </View>
-        </View>
-        {galleryDenied && (
-          <Text variant="small" color={Colors.textSecondary} style={styles.centered}>
-            Activa el permiso de galería en Ajustes del dispositivo.
+      {hasPalettes ? (
+        <PaletteGrid onPressPalette={handlePressPalette} />
+      ) : (
+        <View style={styles.emptyState}>
+          <Text variant="h3" style={styles.centered}>Sin paletas todavía</Text>
+          <Text variant="body" color={Colors.textSecondary} style={styles.centered}>
+            Captura una foto o elige de tu galería para crear tu primera paleta.
           </Text>
-        )}
-      </View>
+          <View style={styles.emptyActions}>
+            <View style={styles.actionItem}>
+              <Button label="Cámara" onPress={handleCamera} variant="primary" fullWidth />
+            </View>
+            <View style={styles.actionItem}>
+              {picking ? (
+                <View style={styles.loadingBtn}>
+                  <ActivityIndicator size="small" color={Colors.accent} />
+                  <Text variant="small" color={Colors.textSecondary}>Abriendo...</Text>
+                </View>
+              ) : (
+                <Button label="Galería" onPress={handleGallery} variant="secondary" fullWidth />
+              )}
+            </View>
+          </View>
+          {galleryDenied && (
+            <Text variant="small" color={Colors.textSecondary} style={styles.centered}>
+              Activa el permiso de galería en Ajustes del dispositivo.
+            </Text>
+          )}
+        </View>
+      )}
 
       <TouchableOpacity style={styles.fab} onPress={handleCamera} activeOpacity={0.85}>
         <Text style={styles.fabPlus}>+</Text>
@@ -82,6 +98,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgPrimary },
+  loadingBox: { alignItems: 'center', justifyContent: 'center' },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
