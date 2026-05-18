@@ -5,7 +5,7 @@ import { monotonicFactory } from 'ulidx';
 import type { ExtractedColor, LayoutConfig, Palette, PaletteMeta } from '@/types/palette';
 import { getDb } from './client';
 
-const ulid = monotonicFactory();
+const ulid = monotonicFactory(() => Math.random());
 
 interface SavePaletteParams {
   imageUri: string;
