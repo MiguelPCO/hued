@@ -53,6 +53,7 @@ export const Colors = {
   accentSubtle: Primitive.accent100,
 
   error: Primitive.red500,
+  errorBg: '#FEF2F2',
   success: Primitive.green500,
 
   // Palette canvas background — pure white so photos pop

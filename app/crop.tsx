@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import ImageCropPicker from 'react-native-image-crop-picker';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -35,6 +35,7 @@ export default function CropScreen() {
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('original');
   const [screenState, setScreenState] = useState<ScreenState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const cropStartRef = useRef<number>(0);
 
   function handleCancel() {
     trackEvent('capture_cancelled', { source: captureSource, stage: 'crop' });
@@ -43,6 +44,7 @@ export default function CropScreen() {
 
   async function handleCrop() {
     if (!imageUri) return;
+    cropStartRef.current = Date.now();
     setScreenState('cropping');
     setErrorMessage(null);
 
@@ -78,6 +80,10 @@ export default function CropScreen() {
         },
       });
 
+      trackEvent('capture_completed', {
+        source: captureSource,
+        duration_ms: Date.now() - cropStartRef.current,
+      });
       router.replace('/(tabs)');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -196,7 +202,7 @@ const styles = StyleSheet.create({
   errorBanner: {
     marginHorizontal: Spacing.lg,
     padding: Spacing.md,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.errorBg,
     borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.error,
