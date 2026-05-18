@@ -68,22 +68,27 @@ export async function savePalette(params: SavePaletteParams): Promise<Palette> {
   };
 
   const db = await getDb();
-  await db.runAsync(
-    `INSERT INTO palettes
-       (id, image_uri, thumbnail_uri, colors, layout_config, meta,
-        created_at, updated_at, is_favorite, export_count)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    id,
-    palette.imageUri,
-    palette.thumbnailUri,
-    JSON.stringify(palette.colors),
-    JSON.stringify(palette.layoutConfig),
-    JSON.stringify(palette.meta),
-    now,
-    now,
-    0,
-    0
-  );
+  try {
+    await db.runAsync(
+      `INSERT INTO palettes
+         (id, image_uri, thumbnail_uri, colors, layout_config, meta,
+          created_at, updated_at, is_favorite, export_count)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id,
+      palette.imageUri,
+      palette.thumbnailUri,
+      JSON.stringify(palette.colors),
+      JSON.stringify(palette.layoutConfig),
+      JSON.stringify(palette.meta),
+      now,
+      now,
+      0,
+      0
+    );
+  } catch (dbErr) {
+    await FileSystem.deleteAsync(dir, { idempotent: true }).catch(() => {});
+    throw dbErr;
+  }
 
   return palette;
 }

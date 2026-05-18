@@ -37,13 +37,17 @@ export default function CropScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const cropStartRef = useRef<number>(0);
 
+  if (!imageUri) {
+    router.replace('/(tabs)');
+    return null;
+  }
+
   function handleCancel() {
     trackEvent('capture_cancelled', { source: captureSource, stage: 'crop' });
     router.replace('/(tabs)');
   }
 
   async function handleCrop() {
-    if (!imageUri) return;
     cropStartRef.current = Date.now();
     setScreenState('cropping');
     setErrorMessage(null);
@@ -51,7 +55,7 @@ export default function CropScreen() {
     try {
       const sizes = ASPECT_SIZES[selectedRatio];
       const cropResult = await ImageCropPicker.openCropper({
-        path: imageUri,
+        path: imageUri as string,
         ...(sizes ? { width: sizes.width, height: sizes.height } : { freeStyleCropEnabled: true }),
         mediaType: 'photo',
         cropperToolbarTitle: 'Recortar',

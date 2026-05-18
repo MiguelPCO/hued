@@ -11,14 +11,18 @@ import { Colors, Radius, Spacing } from '@/lib/tokens';
 
 export default function HomeScreen() {
   const [picking, setPicking] = useState(false);
+  const [galleryDenied, setGalleryDenied] = useState(false);
 
   async function handleGallery() {
     if (picking) return;
     setPicking(true);
+    setGalleryDenied(false);
     try {
       const result = await launchGalleryPicker();
-      if (result) {
+      if (result.type === 'picked') {
         router.push({ pathname: '/crop', params: { uri: result.uri, source: 'gallery' } });
+      } else if (result.type === 'denied') {
+        setGalleryDenied(true);
       }
     } finally {
       setPicking(false);
@@ -62,6 +66,11 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
+        {galleryDenied && (
+          <Text variant="small" color={Colors.textSecondary} style={styles.centered}>
+            Activa el permiso de galería en Ajustes del dispositivo.
+          </Text>
+        )}
       </View>
 
       <TouchableOpacity style={styles.fab} onPress={handleCamera} activeOpacity={0.85}>

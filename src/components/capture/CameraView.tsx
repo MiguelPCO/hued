@@ -25,6 +25,7 @@ export function CameraView({ onCapture, onCancel }: Props) {
   const [flash, setFlash] = useState<FlashMode>('auto');
   const [showGrid, setShowGrid] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const cameraRef = useRef<ExpoCameraView>(null);
 
   if (!permission) {
@@ -55,6 +56,7 @@ export function CameraView({ onCapture, onCancel }: Props) {
   async function handleCapture() {
     if (!cameraRef.current || capturing) return;
     setCapturing(true);
+    setCaptureError(null);
     trackEvent('capture_started', { source: 'camera' });
     const start = Date.now();
     try {
@@ -63,6 +65,7 @@ export function CameraView({ onCapture, onCancel }: Props) {
       onCapture(photo.uri);
     } catch (err) {
       Sentry.captureException(err);
+      setCaptureError('No se pudo tomar la foto. Intentalo de nuevo.');
     } finally {
       setCapturing(false);
     }
@@ -87,6 +90,12 @@ export function CameraView({ onCapture, onCancel }: Props) {
             <Text style={styles.iconTxt}>{showGrid ? 'Grid On' : 'Grid'}</Text>
           </TouchableOpacity>
         </SafeAreaView>
+
+        {captureError !== null && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorTxt}>{captureError}</Text>
+          </View>
+        )}
 
         <View style={styles.bottomBar}>
           <TouchableOpacity
@@ -179,6 +188,16 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   centered: { textAlign: 'center' },
+  errorBanner: {
+    position: 'absolute',
+    top: 100,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  errorTxt: { color: Colors.bgElevated, fontSize: 14, textAlign: 'center' },
   gridLine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.3)' },
   gridH: { left: 0, right: 0, height: 1 },
   gridV: { top: 0, bottom: 0, width: 1 },
