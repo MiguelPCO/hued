@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react-native';
+﻿import * as Sentry from '@sentry/react-native';
 import {
   CameraView as ExpoCameraView,
   CameraType,
@@ -35,9 +35,9 @@ export function CameraView({ onCapture, onCancel }: Props) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionBox}>
-          <Text variant="h2" style={styles.centered}>Acceso a la cámara</Text>
+          <Text variant="h2" style={styles.centered}>Acceso a la camara</Text>
           <Text variant="body" color={Colors.textSecondary} style={styles.centered}>
-            Hued necesita la cámara para capturar fotos y crear paletas de colores.
+            Hued necesita la camara para capturar fotos y crear paletas de colores.
           </Text>
           {permission.canAskAgain ? (
             <Button label="Permitir acceso" onPress={requestPermission} fullWidth />
@@ -78,13 +78,13 @@ export function CameraView({ onCapture, onCancel }: Props) {
 
         <SafeAreaView style={styles.topBar} edges={['top']}>
           <TouchableOpacity style={styles.iconBtn} onPress={onCancel}>
-            <Text style={styles.iconTxt}>✕</Text>
+            <Text style={styles.iconTxt}>X</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setFlash(FLASH_CYCLE[flash])}>
-            <Text style={styles.iconTxt}>⚡{FLASH_LABEL[flash]}</Text>
+            <Text style={styles.iconTxt}>{FLASH_LABEL[flash]}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowGrid((g) => !g)}>
-            <Text style={styles.iconTxt}>{showGrid ? '⊞' : '⊟'}</Text>
+            <Text style={styles.iconTxt}>{showGrid ? 'Grid On' : 'Grid'}</Text>
           </TouchableOpacity>
         </SafeAreaView>
 
@@ -93,7 +93,7 @@ export function CameraView({ onCapture, onCancel }: Props) {
             style={styles.iconBtn}
             onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
           >
-            <Text style={styles.iconTxt}>🔄</Text>
+            <Text style={styles.iconTxt}>Flip</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -118,10 +118,18 @@ export function CameraView({ onCapture, onCancel }: Props) {
 function GridOverlay() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={[styles.gridLine, styles.gridH, { top: '33%' as unknown as number }]} />
-      <View style={[styles.gridLine, styles.gridH, { top: '66%' as unknown as number }]} />
-      <View style={[styles.gridLine, styles.gridV, { left: '33%' as unknown as number }]} />
-      <View style={[styles.gridLine, styles.gridV, { left: '66%' as unknown as number }]} />
+      {/* Horizontal lines at 1/3 and 2/3 */}
+      <View style={{ flex: 1, flexDirection: 'column' }}>
+        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ flex: 1 }} />
+      </View>
+      {/* Vertical lines at 1/3 and 2/3 */}
+      <View style={[StyleSheet.absoluteFill, { flexDirection: 'row' }]}>
+        <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ flex: 1 }} />
+      </View>
     </View>
   );
 }
