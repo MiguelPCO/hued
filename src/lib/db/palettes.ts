@@ -106,3 +106,23 @@ export async function listPalettes(): Promise<Palette[]> {
   );
   return rows.map(rowToPalette);
 }
+
+export async function updatePaletteColors(id: string, colors: ExtractedColor[]): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE palettes SET colors = ?, updated_at = ? WHERE id = ?',
+    JSON.stringify(colors),
+    Date.now(),
+    id
+  );
+}
+
+export async function updatePaletteLayout(id: string, config: LayoutConfig): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE palettes SET layout_config = ?, updated_at = ? WHERE id = ?',
+    JSON.stringify(config),
+    Date.now(),
+    id
+  );
+}
