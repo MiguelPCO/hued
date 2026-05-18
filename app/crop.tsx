@@ -8,7 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
-import { savePalette } from '@/lib/db/palettes';
+import { extractColors, ExtractError } from '@/lib/color/extract';
+import { savePalette, updatePaletteColors } from '@/lib/db/palettes';
 import { optimize, thumbnail } from '@/lib/utils/image';
 import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
 import type { CaptureSource } from '@/types/palette';
@@ -25,7 +26,7 @@ const ASPECT_SIZES: Record<AspectRatio, { width: number; height: number } | null
 
 const RATIOS: AspectRatio[] = ['1:1', '4:5', '9:16', 'original'];
 
-type ScreenState = 'idle' | 'cropping' | 'saving' | 'error';
+type ScreenState = 'idle' | 'cropping' | 'saving' | 'extracting' | 'error';
 
 export default function CropScreen() {
   const params = useLocalSearchParams<{ uri: string; source: string }>();
@@ -72,7 +73,7 @@ export default function CropScreen() {
         thumbnail(cropResult.path),
       ]);
 
-      await savePalette({
+      const palette = await savePalette({
         imageUri: optimizedUri,
         thumbnailUri: thumbUri,
         colors: [],
@@ -88,7 +89,23 @@ export default function CropScreen() {
         source: captureSource,
         duration_ms: Date.now() - cropStartRef.current,
       });
-      router.replace('/(tabs)');
+
+      setScreenState('extracting');
+      const extractStart = Date.now();
+      try {
+        const colors = await extractColors(palette.thumbnailUri);
+        await updatePaletteColors(palette.id, colors);
+        trackEvent('extract_completed', {
+          duration_ms: Date.now() - extractStart,
+          image_size_kb: 0,
+        });
+      } catch (extractErr) {
+        const reason = extractErr instanceof ExtractError ? extractErr.message : 'unknown';
+        trackEvent('extract_failed', { reason });
+        Sentry.captureException(extractErr);
+      }
+
+      router.replace({ pathname: '/palette/[id]', params: { id: palette.id } });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       const isUserCancel =
@@ -106,12 +123,18 @@ export default function CropScreen() {
     }
   }
 
-  if (screenState === 'saving') {
+  const SAVING_LABELS: Partial<Record<ScreenState, string>> = {
+    saving: 'Guardando paleta...',
+    extracting: 'Extrayendo colores...',
+  };
+  const savingLabel = SAVING_LABELS[screenState];
+
+  if (savingLabel) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={Colors.accent} />
         <Text variant="small" color={Colors.textSecondary} style={styles.savingLabel}>
-          Guardando paleta...
+          {savingLabel}
         </Text>
       </View>
     );
