@@ -12,15 +12,12 @@
 Five subsystems, in dependency order:
 
 ```
-src/components/compose/ArchetypeCanvas.tsx
-  └─ useCanvasRef()               [new] — exposes Skia surface for snapshot
-  └─ exportSnapshot()             [new] — src/lib/export/exportPalette.ts
+src/lib/export/exportPalette.ts   [new] — drawAsImage() offscreen render, no
+                                    changes needed to ArchetypeCanvas.tsx
 
 app/palette/[id].tsx
-  └─ "Exportar" button            [new] — opens export modal
-
-app/export.tsx                    [new] — resolution picker modal (Sheet)
-  └─ exportPalette(id, resolution, canvasRef)
+  └─ "Exportar" button            [new] — opens export Sheet (in-page, not a route)
+  └─ exportPalette(palette, config, resolution)
   └─ expo-media-library.saveToLibraryAsync
   └─ expo-sharing.shareAsync
 
@@ -40,14 +37,11 @@ No new native modules beyond `expo-media-library` and `expo-sharing` (both offic
 
 ---
 
-## 1. Canvas capture (Skia native snapshot)
+## 1. Canvas capture (Skia offscreen render, no visible mount)
 
-**Why not `react-native-view-shot`:** the compose screen already renders through `@shopify/react-native-skia`'s GPU-backed `<Canvas>`. Skia exposes its own snapshot API (`useCanvasRef` + `image.encodeToBytes()`), which reads directly from the Skia surface — no extra native dependency, no risk of view-shot missing GL-backed content, and exact pixel control over the output size (independent of on-screen scale).
+**Why not `react-native-view-shot`:** the compose screen already renders through `@shopify/react-native-skia`'s GPU-backed `<Canvas>`. Skia exposes its own offscreen rendering API, which draws directly to a Skia surface — no extra native dependency, no risk of view-shot missing GL-backed content, and exact pixel control over the output size (independent of on-screen scale).
 
-**Changes to `ArchetypeCanvas.tsx`:**
-- Accept an optional `exportSize?: { width: number; height: number }` prop and a forwarded `ref` (via `useCanvasRef()` from `@shopify/react-native-skia`), passed to the `<Canvas ref={...}>` element. When `exportSize` is set, the canvas and its `<Group transform={[{ scale }]}>` wrapper use that pixel size instead of `screenW`-derived scaling (the archetype components already take `width`/`height` as props, so they redraw correctly at any resolution with no changes needed inside them).
-
-**Single unified capture strategy (same for all three resolutions, no special-casing):** to export, mount a second, invisible `ArchetypeCanvas` instance off-screen (`position: 'absolute'`, moved outside the visible viewport, `pointerEvents: 'none'`) with `exportSize` set to the target resolution (1080×1350 / 2160×2700 / 4320×5400). Wait one frame (`requestAnimationFrame`), call `canvasRef.current.makeImageSnapshot()`, encode to PNG via `image.encodeToBytes(ImageFormat.PNG)`, write to a cache file, then unmount the offscreen canvas. This reuses 100% of the existing archetype render code with zero duplication and keeps the on-screen preview canvas completely decoupled from export resolution.
+**Revised during planning:** `@shopify/react-native-skia` ships `drawAsImage(element: ReactElement, size: SkSize): Promise<SkImage>` (`renderer/Offscreen`). It renders a tree of Skia primitives (`<Group>`, `<Rect>`, `<Text>`, etc — exactly what the archetype components are built from) directly to an `SkImage` with **no mounted `<Canvas>` at all**, on- or off-screen. This is simpler than the originally-planned "mount an invisible `ArchetypeCanvas` and snapshot it" approach: no ref forwarding, no offscreen positioning hacks, no mount/wait-a-frame/unmount lifecycle. `ArchetypeCanvas.tsx` needs **no changes** — export re-renders the same archetype components (`StripArchetype`, etc.) directly through `drawAsImage`, reusing 100% of the per-archetype drawing logic. The ~10-line `<Group transform>`/clip/outlined-border wrapper is duplicated between `ArchetypeCanvas.tsx` (on-screen) and `exportPalette.ts` (export) — an acceptable small duplication, since it's stable scaffolding, not the part that actually varies.
 
 **New file `src/lib/export/exportPalette.ts`:**
 ```typescript
@@ -59,9 +53,10 @@ const RESOLUTIONS: Record<ExportResolution, { width: number; height: number }> =
   '4x': { width: 4320, height: 5400 },
 };
 
-// Mounts an offscreen ArchetypeCanvas at the target resolution (see the
-// unified capture strategy above), snapshots it, encodes to PNG, and writes
-// the result to the cache directory (expo-file-system).
+// Renders the archetype tree via Skia's drawAsImage() at the target
+// resolution (base design units 360x450, scaled up — same ratio the
+// on-screen ArchetypeCanvas uses), encodes to PNG, and writes the result
+// to the cache directory (expo-file-system).
 export async function exportPalette(
   palette: Palette,
   config: LayoutConfig,
@@ -69,13 +64,13 @@ export async function exportPalette(
 ): Promise<string> // returns file:// URI of the written PNG
 ```
 
-**Test:** `src/lib/export/__tests__/exportPalette.test.ts` — mock the Skia canvas ref (`makeImageSnapshot`/`encodeToBytes`), verify the correct `{width, height}` is requested per resolution, verify the returned URI is written via `FileSystem.writeAsStringAsync` (base64).
+**Test:** `src/lib/export/__tests__/exportPalette.test.ts` — mock `drawAsImage` (verify it's called with the correct `{width, height}` per resolution) and mock the returned `SkImage`'s `encodeToBase64`, verify the returned URI is written via `FileSystem.writeAsStringAsync` (base64).
 
 ---
 
-## 2. Export modal (`app/export.tsx`)
+## 2. Export flow (in-page `Sheet`, not a routed modal)
 
-Triggered from a new "Exportar" button added to `app/palette/[id].tsx` (below the swatch row / archetype picker, above bottom padding).
+Triggered from a new "Exportar" button added to `app/palette/[id].tsx` (below the swatch row / archetype picker, above bottom padding). Implemented as local component state + the existing `Sheet` primitive (`src/components/ui/Sheet.tsx`) — no new Expo Router route/file. This matches how `Sheet` was designed to be used, and avoids adding another `Stack.Screen` entry (the project already has two unused ones — `paywall`, `onboarding` — that log console warnings every load; not adding a third for something that's inherently a transient overlay, not a navigable screen).
 
 **Flow:**
 1. Button opens `Sheet` (reusing `src/components/ui/Sheet.tsx`) with 3 pill options: 1× / 2× / 4×, each showing pixel dimensions as a subtitle ("1080 × 1350", etc).
