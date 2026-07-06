@@ -24,6 +24,7 @@ export type IconName =
   | 'star-border'
   | 'more-vert'
   | 'download'
+  | 'content-copy'
   | 'lock';
 
 interface Props {
