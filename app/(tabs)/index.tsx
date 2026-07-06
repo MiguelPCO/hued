@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { launchGalleryPicker } from '@/components/capture/GalleryPicker';
@@ -10,10 +10,14 @@ import { Text } from '@/components/ui/Text';
 import { listPalettes } from '@/lib/db/palettes';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 
+type Filter = 'all' | 'favorites';
+
 export default function HomeScreen() {
   const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
   const [picking, setPicking] = useState(false);
   const [galleryDenied, setGalleryDenied] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -61,7 +65,35 @@ export default function HomeScreen() {
       </View>
 
       {hasPalettes ? (
-        <PaletteGrid onPressPalette={handlePressPalette} />
+        <>
+          <View style={styles.toolbar}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Buscar por color..."
+              placeholderTextColor={Colors.textPlaceholder}
+              style={styles.searchInput}
+            />
+            <View style={styles.pillRow}>
+              {(['all', 'favorites'] as const).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[styles.pill, filter === f && styles.pillActive]}
+                  onPress={() => setFilter(f)}
+                >
+                  <Text
+                    variant="small"
+                    weight={filter === f ? 'semibold' : 'regular'}
+                    color={filter === f ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {f === 'all' ? 'Todas' : 'Favoritas'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <PaletteGrid onPressPalette={handlePressPalette} filter={filter} query={query} />
+        </>
       ) : (
         <View style={styles.emptyState}>
           <Text variant="h3" style={styles.centered}>Sin paletas todavía</Text>
@@ -107,6 +139,33 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     gap: Spacing.xs,
   },
+  toolbar: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  searchInput: {
+    height: 40,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    backgroundColor: Colors.bgElevated,
+    paddingHorizontal: Spacing.md,
+    color: Colors.textPrimary,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  pill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    backgroundColor: Colors.bgElevated,
+  },
+  pillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   emptyState: {
     flex: 1,
     alignItems: 'center',
