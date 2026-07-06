@@ -50,6 +50,9 @@ yarn-error.*
 # IDE
 .idea/
 
-# autoskills (AI skill files — not project code)
+# autoskills (AI skill files ï¿½ not project code)
 .agents/
 .kiro/
+
+# Git worktrees (per-task isolated workspaces)
+.worktrees/
