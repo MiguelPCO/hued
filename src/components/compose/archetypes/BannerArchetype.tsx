@@ -3,15 +3,13 @@ import {
   Image,
   Rect,
   Text,
-  useImage,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
 import { getContrastTextColor, useArchetypeFonts } from './shared';
 
 const STRIP_H = 48;
 
-export function BannerArchetype({ palette, config, width, height }: ArchetypeProps) {
-  const image = useImage(palette.imageUri);
+export function BannerArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const barW = width / 5;
   const stripY = height - STRIP_H;
 

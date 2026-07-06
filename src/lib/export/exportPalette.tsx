@@ -1,4 +1,5 @@
-import { Group, ImageFormat, RoundedRect, drawAsImage, rect, rrect } from '@shopify/react-native-skia';
+import { Group, ImageFormat, RoundedRect, Skia, drawAsImage, rect, rrect } from '@shopify/react-native-skia';
+import type { SkImage } from '@shopify/react-native-skia';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { BannerArchetype } from '@/components/compose/archetypes/BannerArchetype';
@@ -22,8 +23,8 @@ export const RESOLUTIONS: Record<ExportResolution, { width: number; height: numb
   '4x': { width: 4320, height: 5400 },
 };
 
-function renderArchetype(palette: Palette, config: LayoutConfig) {
-  const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H };
+function renderArchetype(palette: Palette, config: LayoutConfig, image: SkImage | null) {
+  const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
   switch (config.archetypeId) {
     case 'strip':
       return <StripArchetype {...archetypeProps} />;
@@ -47,9 +48,17 @@ export async function exportPalette(
   const scale = width / CANVAS_W;
   const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
 
+  let image: SkImage | null = null;
+  try {
+    const imageData = await Skia.Data.fromURI(palette.imageUri);
+    image = imageData ? Skia.Image.MakeImageFromEncoded(imageData) : null;
+  } catch {
+    image = null;
+  }
+
   const element = (
     <Group transform={[{ scale }]}>
-      <Group clip={clip}>{renderArchetype(palette, config)}</Group>
+      <Group clip={clip}>{renderArchetype(palette, config, image)}</Group>
       {config.cardStyle === 'outlined' && (
         <RoundedRect
           x={1}
@@ -65,8 +74,8 @@ export async function exportPalette(
     </Group>
   );
 
-  const image = await drawAsImage(element, { width, height });
-  const base64 = image.encodeToBase64(ImageFormat.PNG, 100);
+  const rendered = await drawAsImage(element, { width, height });
+  const base64 = rendered.encodeToBase64(ImageFormat.PNG, 100);
 
   const cacheDir = FileSystem.cacheDirectory;
   if (!cacheDir) throw new Error('FileSystem.cacheDirectory is null');

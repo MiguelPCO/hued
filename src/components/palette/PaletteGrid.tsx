@@ -12,13 +12,14 @@ interface Props {
   onPressPalette: (id: string) => void;
   filter: 'all' | 'favorites';
   query: string;
+  onPalettesChange?: (count: number) => void;
 }
 
 function SkeletonCard() {
   return <View style={styles.skeleton} />;
 }
 
-export function PaletteGrid({ onPressPalette, filter, query }: Props) {
+export function PaletteGrid({ onPressPalette, filter, query, onPalettesChange }: Props) {
   const [palettes, setPalettes] = useState<Palette[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +27,8 @@ export function PaletteGrid({ onPressPalette, filter, query }: Props) {
     const data = await listPalettes();
     setPalettes(data);
     setLoading(false);
-  }, []);
+    onPalettesChange?.(data.length);
+  }, [onPalettesChange]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -37,12 +39,20 @@ export function PaletteGrid({ onPressPalette, filter, query }: Props) {
   }, []);
 
   const handleDuplicated = useCallback((duplicate: Palette) => {
-    setPalettes((prev) => [duplicate, ...prev]);
-  }, []);
+    setPalettes((prev) => {
+      const next = [duplicate, ...prev];
+      onPalettesChange?.(next.length);
+      return next;
+    });
+  }, [onPalettesChange]);
 
   const handleDeleted = useCallback((id: string) => {
-    setPalettes((prev) => prev.filter((p) => p.id !== id));
-  }, []);
+    setPalettes((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      onPalettesChange?.(next.length);
+      return next;
+    });
+  }, [onPalettesChange]);
 
   const visible = useMemo(() => {
     return palettes

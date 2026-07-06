@@ -1,4 +1,4 @@
-import { Canvas, Group, rrect, rect, RoundedRect } from '@shopify/react-native-skia';
+import { Canvas, Group, rrect, rect, RoundedRect, useImage } from '@shopify/react-native-skia';
 import { useWindowDimensions } from 'react-native';
 
 import { BannerArchetype } from './archetypes/BannerArchetype';
@@ -20,8 +20,9 @@ export function ArchetypeCanvas({ palette, config }: Props) {
   const { width: screenW } = useWindowDimensions();
   const scale = screenW / CANVAS_W;
   const displayH = CANVAS_H * scale;
+  const image = useImage(palette.imageUri);
 
-  const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H };
+  const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
   const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
 
   return (

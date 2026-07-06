@@ -3,13 +3,11 @@ import {
   Image,
   Rect,
   Text,
-  useImage,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
 import { getContrastTextColor, useArchetypeFonts } from './shared';
 
-export function StripArchetype({ palette, config, width, height }: ArchetypeProps) {
-  const image = useImage(palette.imageUri);
+export function StripArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageH = height * 0.7;
   const stripH = height * 0.3;
   const barW = width / 5;

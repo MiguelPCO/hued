@@ -17,6 +17,14 @@ jest.mock('@shopify/react-native-skia', () => ({
   RoundedRect: 'RoundedRect',
   rrect: jest.fn(),
   rect: jest.fn(),
+  Skia: {
+    Data: {
+      fromURI: jest.fn().mockResolvedValue({}),
+    },
+    Image: {
+      MakeImageFromEncoded: jest.fn().mockReturnValue({}),
+    },
+  },
 }));
 
 const mockFs = FileSystem as jest.Mocked<typeof FileSystem>;

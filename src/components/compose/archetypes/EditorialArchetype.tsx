@@ -5,7 +5,6 @@ import {
   LinearGradient,
   Rect,
   Text,
-  useImage,
   vec,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
@@ -15,8 +14,7 @@ const DOT_R = 14;
 const DOT_SPACING = 8;
 const SPACING_MD = 16;
 
-export function EditorialArchetype({ palette, config, width, height }: ArchetypeProps) {
-  const image = useImage(palette.imageUri);
+export function EditorialArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const gradientStart = height * 0.55;
   const dotY = height * 0.82;
   const totalDotsW = palette.colors.length * (DOT_R * 2) + (palette.colors.length - 1) * DOT_SPACING;

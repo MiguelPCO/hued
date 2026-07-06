@@ -29,6 +29,8 @@ export default function HomeScreen() {
     router.push({ pathname: '/palette/[id]', params: { id } });
   }, []);
 
+  const handlePalettesChange = useCallback((count: number) => setHasPalettes(count > 0), []);
+
   async function handleGallery() {
     if (picking) return;
     setPicking(true);
@@ -92,7 +94,12 @@ export default function HomeScreen() {
               ))}
             </View>
           </View>
-          <PaletteGrid onPressPalette={handlePressPalette} filter={filter} query={query} />
+          <PaletteGrid
+            onPressPalette={handlePressPalette}
+            filter={filter}
+            query={query}
+            onPalettesChange={handlePalettesChange}
+          />
         </>
       ) : (
         <View style={styles.emptyState}>

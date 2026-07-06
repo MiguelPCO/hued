@@ -3,13 +3,11 @@ import {
   Image,
   Rect,
   Text,
-  useImage,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
 import { getContrastTextColor, useArchetypeFonts } from './shared';
 
-export function GridArchetype({ palette, config, width, height }: ArchetypeProps) {
-  const image = useImage(palette.imageUri);
+export function GridArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageH = height * 0.5;
   const cellH = (height - imageH) / 3;
   const cellW = width / 2;

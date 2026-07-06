@@ -3,13 +3,11 @@ import {
   Image,
   Rect,
   Text,
-  useImage,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
 import { getContrastTextColor, useArchetypeFonts } from './shared';
 
-export function SideArchetype({ palette, config, width, height }: ArchetypeProps) {
-  const image = useImage(palette.imageUri);
+export function SideArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageW = width * 0.6;
   const sideW = width - imageW;
   const rowH = height / 5;
