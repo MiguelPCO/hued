@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,9 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArchetypeCanvas } from '@/components/compose/ArchetypeCanvas';
 import { Button } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
 import { extractColors, ExtractError } from '@/lib/color/extract';
-import { getPalette, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
+import { exportPalette, RESOLUTIONS } from '@/lib/export/exportPalette';
+import type { ExportResolution } from '@/lib/export/exportPalette';
+import { getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
 import type { ArchetypeId, LayoutConfig, Palette } from '@/types/palette';
@@ -28,12 +33,21 @@ const ARCHETYPES: { id: ArchetypeId; label: string }[] = [
   { id: 'side', label: 'Lateral' },
 ];
 
+const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
+  { value: '1x', label: '1×' },
+  { value: '2x', label: '2×' },
+  { value: '4x', label: '4×' },
+];
+
 export default function PaletteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [palette, setPalette] = useState<Palette | null>(null);
   const [config, setConfig] = useState<LayoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
+  const [exportSheetVisible, setExportSheetVisible] = useState(false);
+  const [exportState, setExportState] = useState<'idle' | 'exporting'>('idle');
+  const [exportError, setExportError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<(() => void) | null>(null);
 
@@ -86,6 +100,42 @@ export default function PaletteScreen() {
       Sentry.captureException(err);
     } finally {
       setExtracting(false);
+    }
+  }
+
+  async function handleExport(resolution: ExportResolution) {
+    if (!palette || !config) return;
+    setExportState('exporting');
+    setExportError(null);
+    try {
+      const uri = await exportPalette(palette, config, resolution);
+
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        setExportError('Activa el permiso de fotos en Ajustes del dispositivo.');
+        setExportState('idle');
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(uri);
+
+      await incrementExportCount(palette.id);
+      trackEvent('palette_exported', {
+        palette_id: palette.id,
+        resolution,
+        archetype_id: config.archetypeId,
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png' });
+        trackEvent('palette_shared', { palette_id: palette.id });
+      }
+
+      setExportSheetVisible(false);
+    } catch (err) {
+      Sentry.captureException(err);
+      setExportError('No se pudo exportar la paleta. Intentalo de nuevo.');
+    } finally {
+      setExportState('idle');
     }
   }
 
@@ -189,8 +239,43 @@ export default function PaletteScreen() {
           ))}
         </View>
 
+        <View style={styles.exportSection}>
+          <Button
+            label="Exportar"
+            onPress={() => setExportSheetVisible(true)}
+            variant="primary"
+            fullWidth
+          />
+        </View>
+
         <View style={styles.bottomPad} />
       </ScrollView>
+
+      <Sheet visible={exportSheetVisible} onClose={() => setExportSheetVisible(false)}>
+        <Text variant="h3" style={styles.sheetTitle}>Exportar paleta</Text>
+        {exportError && (
+          <View style={styles.errorBanner}>
+            <Text variant="small" color={Colors.error}>{exportError}</Text>
+          </View>
+        )}
+        {RESOLUTION_LABELS.map(({ value, label }) => {
+          const { width, height } = RESOLUTIONS[value];
+          return (
+            <TouchableOpacity
+              key={value}
+              style={styles.resolutionRow}
+              onPress={() => handleExport(value)}
+              disabled={exportState === 'exporting'}
+            >
+              <Text variant="body" weight="semibold">{label}</Text>
+              <Text variant="small" color={Colors.textSecondary}>
+                {width} × {height}
+              </Text>
+              {exportState === 'exporting' && <ActivityIndicator size="small" color={Colors.accent} />}
+            </TouchableOpacity>
+          );
+        })}
+      </Sheet>
     </SafeAreaView>
   );
 }
@@ -247,4 +332,15 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderDefault,
   },
   bottomPad: { height: Spacing.xl },
+  exportSection: { marginTop: Spacing.lg, paddingHorizontal: Spacing.md },
+  sheetTitle: { marginBottom: Spacing.md },
+  resolutionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderDefault,
+    gap: Spacing.sm,
+  },
 });
