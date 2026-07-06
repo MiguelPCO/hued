@@ -49,6 +49,14 @@
         {
           "photosPermission": "Hued necesita acceso a tu galería para crear paletas desde tus fotos."
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Hued necesita acceso a tus fotos para guardar las paletas exportadas.",
+          "savePhotosPermission": "Hued necesita acceso a tus fotos para guardar las paletas exportadas.",
+          "isAccessMediaLocationEnabled": false
+        }
       ]
     ]
   }
