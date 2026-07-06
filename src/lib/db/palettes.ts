@@ -43,6 +43,31 @@ function rowToPalette(row: PaletteRow): Palette {
   };
 }
 
+async function insertPaletteRow(palette: Palette): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT INTO palettes
+       (id, image_uri, thumbnail_uri, colors, layout_config, meta,
+        created_at, updated_at, is_favorite, export_count)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    palette.id,
+    palette.imageUri,
+    palette.thumbnailUri,
+    JSON.stringify(palette.colors),
+    JSON.stringify(palette.layoutConfig),
+    JSON.stringify(palette.meta),
+    palette.createdAt,
+    palette.updatedAt,
+    palette.isFavorite ? 1 : 0,
+    palette.exportCount
+  );
+}
+
+/** Directory a palette's files live in, derived from its imageUri (`${dir}full.jpg`). */
+function paletteDir(imageUri: string): string {
+  return imageUri.slice(0, imageUri.lastIndexOf('/') + 1);
+}
+
 export async function savePalette(params: SavePaletteParams): Promise<Palette> {
   const id = ulid();
   const baseDir = FileSystem.documentDirectory;
@@ -68,24 +93,7 @@ export async function savePalette(params: SavePaletteParams): Promise<Palette> {
       exportCount: 0,
     };
 
-    const db = await getDb();
-    await db.runAsync(
-      `INSERT INTO palettes
-         (id, image_uri, thumbnail_uri, colors, layout_config, meta,
-          created_at, updated_at, is_favorite, export_count)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id,
-      palette.imageUri,
-      palette.thumbnailUri,
-      JSON.stringify(palette.colors),
-      JSON.stringify(palette.layoutConfig),
-      JSON.stringify(palette.meta),
-      now,
-      now,
-      0,
-      0
-    );
-
+    await insertPaletteRow(palette);
     return palette;
   } catch (err) {
     await FileSystem.deleteAsync(dir, { idempotent: true }).catch(() => {});
@@ -125,4 +133,67 @@ export async function updatePaletteLayout(id: string, config: LayoutConfig): Pro
     Date.now(),
     id
   );
+}
+
+export async function toggleFavorite(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE palettes SET is_favorite = NOT is_favorite, updated_at = ? WHERE id = ?',
+    Date.now(),
+    id
+  );
+}
+
+export async function incrementExportCount(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE palettes SET export_count = export_count + 1, updated_at = ? WHERE id = ?',
+    Date.now(),
+    id
+  );
+}
+
+export async function deletePalette(id: string): Promise<void> {
+  const palette = await getPalette(id);
+  const db = await getDb();
+  await db.runAsync('DELETE FROM palettes WHERE id = ?', id);
+  if (palette) {
+    await FileSystem.deleteAsync(paletteDir(palette.imageUri), { idempotent: true }).catch(() => {});
+  }
+}
+
+export async function duplicatePalette(id: string): Promise<Palette> {
+  const source = await getPalette(id);
+  if (!source) throw new Error(`Palette not found: ${id}`);
+
+  const newId = ulid();
+  const baseDir = FileSystem.documentDirectory;
+  if (!baseDir) throw new Error('FileSystem.documentDirectory is null');
+  const dir = `${baseDir}palettes/${newId}/`;
+
+  try {
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    await FileSystem.copyAsync({ from: source.imageUri, to: `${dir}full.jpg` });
+    await FileSystem.copyAsync({ from: source.thumbnailUri, to: `${dir}thumb.jpg` });
+
+    const now = Date.now();
+    const duplicate: Palette = {
+      id: newId,
+      imageUri: `${dir}full.jpg`,
+      thumbnailUri: `${dir}thumb.jpg`,
+      colors: source.colors,
+      layoutConfig: source.layoutConfig,
+      meta: source.meta,
+      createdAt: now,
+      updatedAt: now,
+      isFavorite: false,
+      exportCount: 0,
+    };
+
+    await insertPaletteRow(duplicate);
+    return duplicate;
+  } catch (err) {
+    await FileSystem.deleteAsync(dir, { idempotent: true }).catch(() => {});
+    throw err;
+  }
 }
