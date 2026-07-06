@@ -58,20 +58,20 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
-    <PostHogProvider client={posthog}>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
-        <SafeAreaProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="palette/[id]" options={{ presentation: 'card' }} />
-            <Stack.Screen name="crop" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-          </Stack>
-          <StatusBar style="dark" />
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </PostHogProvider>
+  const content = (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="palette/[id]" options={{ presentation: 'card' }} />
+          <Stack.Screen name="crop" options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
+        </Stack>
+        <StatusBar style="dark" />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
+
+  return posthog ? <PostHogProvider client={posthog}>{content}</PostHogProvider> : content;
 }

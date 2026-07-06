@@ -1,16 +1,12 @@
-import { useMemo } from 'react';
 import {
   Group,
   Image,
-  matchFont,
   Rect,
   Text,
   useImage,
 } from '@shopify/react-native-skia';
-import { Platform } from 'react-native';
 import type { ArchetypeProps } from './types';
-
-const FONT_FAMILY = Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto';
+import { getContrastTextColor, useArchetypeFonts } from './shared';
 
 export function SideArchetype({ palette, config, width, height }: ArchetypeProps) {
   const image = useImage(palette.imageUri);
@@ -18,8 +14,7 @@ export function SideArchetype({ palette, config, width, height }: ArchetypeProps
   const sideW = width - imageW;
   const rowH = height / 5;
 
-  const hexFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: 8 }), []);
-  const nameFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: 7 }), []);
+  const { hexFont, nameFont } = useArchetypeFonts(8, 7);
 
   return (
     <Group>
@@ -30,7 +25,7 @@ export function SideArchetype({ palette, config, width, height }: ArchetypeProps
 
       {palette.colors.map((color, i) => {
         const y = i * rowH;
-        const textColor = color.hslLightness > 0.5 ? '#000000' : '#FFFFFF';
+        const textColor = getContrastTextColor(color.hslLightness);
         return (
           <Group key={i}>
             <Rect x={imageW} y={y} width={sideW} height={rowH} color={color.hex} />

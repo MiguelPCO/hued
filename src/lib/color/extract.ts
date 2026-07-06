@@ -45,10 +45,22 @@ function assign(samples: RGB[], centroids: RGB[]): number[] {
   });
 }
 
+function assignWithDist(samples: RGB[], centroids: RGB[]): { idx: number[]; dist: number[] } {
+  const idx = new Array<number>(samples.length);
+  const dist = new Array<number>(samples.length);
+  samples.forEach((s, i) => {
+    let minD = Infinity, bestIdx = 0;
+    centroids.forEach((c, ci) => { const d = dist2(s, c); if (d < minD) { minD = d; bestIdx = ci; } });
+    idx[i] = bestIdx;
+    dist[i] = minD;
+  });
+  return { idx, dist };
+}
+
 function kmeans(samples: RGB[], centroids: RGB[]): RGB[] {
   let centers = centroids.map((c) => [...c] as RGB);
   for (let iter = 0; iter < MAX_ITER; iter++) {
-    const asgn = assign(samples, centers);
+    const { idx: asgn, dist } = assignWithDist(samples, centers);
     const sums: RGB[] = Array.from({ length: K }, () => [0, 0, 0] as RGB);
     const counts = new Array<number>(K).fill(0);
     samples.forEach((s, i) => {
@@ -57,8 +69,23 @@ function kmeans(samples: RGB[], centroids: RGB[]): RGB[] {
       counts[c]++;
     });
     let moved = false;
+    // Samples already claimed by a dead centroid this pass, so two centroids
+    // dying in the same iteration can't reseed to the same point.
+    const claimed = new Set<number>();
     centers = sums.map((sum, i) => {
-      if (counts[i] === 0) return centers[i];
+      if (counts[i] === 0) {
+        // Reseed dead centroid to the sample farthest from all live centroids,
+        // otherwise it stays stuck forever and duplicates another color.
+        // Reuses this iteration's assign() distances instead of recomputing.
+        let farthestIdx = -1, farthestDist = -1;
+        for (let s = 0; s < samples.length; s++) {
+          if (claimed.has(s)) continue;
+          if (dist[s] > farthestDist) { farthestDist = dist[s]; farthestIdx = s; }
+        }
+        claimed.add(farthestIdx);
+        moved = true;
+        return [...samples[farthestIdx]] as RGB;
+      }
       const next: RGB = [
         Math.round(sum[0] / counts[i]),
         Math.round(sum[1] / counts[i]),

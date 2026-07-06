@@ -34,6 +34,5 @@ type EventMap = {
 };
 
 export function trackEvent<K extends keyof EventMap>(event: K, props: EventMap[K]): void {
-  if (!process.env.EXPO_PUBLIC_POSTHOG_KEY) return;
-  posthog.capture(event, props);
+  posthog?.capture(event, props);
 }

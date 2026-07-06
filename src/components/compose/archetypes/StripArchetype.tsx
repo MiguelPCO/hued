@@ -1,16 +1,12 @@
-import { useMemo } from 'react';
 import {
   Group,
   Image,
-  matchFont,
   Rect,
   Text,
   useImage,
 } from '@shopify/react-native-skia';
-import { Platform } from 'react-native';
 import type { ArchetypeProps } from './types';
-
-const FONT_FAMILY = Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto';
+import { getContrastTextColor, useArchetypeFonts } from './shared';
 
 export function StripArchetype({ palette, config, width, height }: ArchetypeProps) {
   const image = useImage(palette.imageUri);
@@ -18,8 +14,7 @@ export function StripArchetype({ palette, config, width, height }: ArchetypeProp
   const stripH = height * 0.3;
   const barW = width / 5;
 
-  const hexFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: 9 }), []);
-  const nameFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: 8 }), []);
+  const { hexFont, nameFont } = useArchetypeFonts(9, 8);
 
   return (
     <Group>
@@ -30,7 +25,7 @@ export function StripArchetype({ palette, config, width, height }: ArchetypeProp
 
       {palette.colors.map((color, i) => {
         const x = i * barW;
-        const textColor = color.hslLightness > 0.5 ? '#000000' : '#FFFFFF';
+        const textColor = getContrastTextColor(color.hslLightness);
         return (
           <Group key={i}>
             <Rect x={x} y={imageH} width={barW} height={stripH} color={color.hex} />
@@ -45,7 +40,7 @@ export function StripArchetype({ palette, config, width, height }: ArchetypeProp
             )}
             {config.showName && (
               <Text
-                x={x + barW / 2 - (color.name.length * 2.5)}
+                x={Math.max(x + 2, x + barW / 2 - (color.name.length * 2.5))}
                 y={imageH + stripH * 0.62}
                 text={color.name}
                 font={nameFont}

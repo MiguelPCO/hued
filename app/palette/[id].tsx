@@ -35,6 +35,7 @@ export default function PaletteScreen() {
   const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFlushRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -44,16 +45,30 @@ export default function PaletteScreen() {
     });
   }, [id]);
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        // Flush any pending edit immediately instead of dropping it — the
+        // debounce timer never gets to fire once this screen unmounts.
+        pendingFlushRef.current?.();
+      }
+    };
+  }, []);
+
   const updateConfig = useCallback((partial: Partial<LayoutConfig>) => {
     setConfig((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...partial };
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
+      const flush = () => {
+        pendingFlushRef.current = null;
         if (id) {
           updatePaletteLayout(id, next).catch(Sentry.captureException);
         }
-      }, 500);
+      };
+      pendingFlushRef.current = flush;
+      debounceRef.current = setTimeout(flush, 500);
       return next;
     });
   }, [id]);

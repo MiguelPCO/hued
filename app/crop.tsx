@@ -1,9 +1,16 @@
 import * as Sentry from '@sentry/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import ImageCropPicker from 'react-native-image-crop-picker';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// react-native-image-crop-picker is a native-only module with no web
+// implementation — its top-level init throws immediately if required on
+// web, which would otherwise crash the entire bundle (this app configures
+// "web" as a target platform in app.json). Gate the require itself so its
+// native init code never runs outside iOS/Android.
+const ImageCropPicker: typeof import('react-native-image-crop-picker').default | null =
+  process.env.EXPO_OS === 'web' ? null : require('react-native-image-crop-picker').default;
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -38,8 +45,11 @@ export default function CropScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const cropStartRef = useRef<number>(0);
 
+  useEffect(() => {
+    if (!imageUri) router.replace('/(tabs)');
+  }, [imageUri]);
+
   if (!imageUri) {
-    router.replace('/(tabs)');
     return null;
   }
 
@@ -52,6 +62,12 @@ export default function CropScreen() {
     cropStartRef.current = Date.now();
     setScreenState('cropping');
     setErrorMessage(null);
+
+    if (!ImageCropPicker) {
+      setErrorMessage('Recortar no está disponible en esta plataforma.');
+      setScreenState('error');
+      return;
+    }
 
     try {
       const sizes = ASPECT_SIZES[selectedRatio];

@@ -49,26 +49,26 @@ export async function savePalette(params: SavePaletteParams): Promise<Palette> {
   if (!baseDir) throw new Error('FileSystem.documentDirectory is null');
   const dir = `${baseDir}palettes/${id}/`;
 
-  await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
-  await FileSystem.copyAsync({ from: params.imageUri, to: `${dir}full.jpg` });
-  await FileSystem.copyAsync({ from: params.thumbnailUri, to: `${dir}thumb.jpg` });
-
-  const now = Date.now();
-  const palette: Palette = {
-    id,
-    imageUri: `${dir}full.jpg`,
-    thumbnailUri: `${dir}thumb.jpg`,
-    colors: params.colors,
-    layoutConfig: params.layoutConfig,
-    meta: params.meta,
-    createdAt: now,
-    updatedAt: now,
-    isFavorite: false,
-    exportCount: 0,
-  };
-
-  const db = await getDb();
   try {
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    await FileSystem.copyAsync({ from: params.imageUri, to: `${dir}full.jpg` });
+    await FileSystem.copyAsync({ from: params.thumbnailUri, to: `${dir}thumb.jpg` });
+
+    const now = Date.now();
+    const palette: Palette = {
+      id,
+      imageUri: `${dir}full.jpg`,
+      thumbnailUri: `${dir}thumb.jpg`,
+      colors: params.colors,
+      layoutConfig: params.layoutConfig,
+      meta: params.meta,
+      createdAt: now,
+      updatedAt: now,
+      isFavorite: false,
+      exportCount: 0,
+    };
+
+    const db = await getDb();
     await db.runAsync(
       `INSERT INTO palettes
          (id, image_uri, thumbnail_uri, colors, layout_config, meta,
@@ -85,12 +85,12 @@ export async function savePalette(params: SavePaletteParams): Promise<Palette> {
       0,
       0
     );
-  } catch (dbErr) {
-    await FileSystem.deleteAsync(dir, { idempotent: true }).catch(() => {});
-    throw dbErr;
-  }
 
-  return palette;
+    return palette;
+  } catch (err) {
+    await FileSystem.deleteAsync(dir, { idempotent: true }).catch(() => {});
+    throw err;
+  }
 }
 
 export async function getPalette(id: string): Promise<Palette | null> {

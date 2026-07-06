@@ -1,4 +1,4 @@
-import { Canvas, Group, RoundedRect } from '@shopify/react-native-skia';
+import { Canvas, Group, rrect, rect, RoundedRect } from '@shopify/react-native-skia';
 import { useWindowDimensions } from 'react-native';
 
 import { BannerArchetype } from './archetypes/BannerArchetype';
@@ -22,15 +22,18 @@ export function ArchetypeCanvas({ palette, config }: Props) {
   const displayH = CANVAS_H * scale;
 
   const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H };
+  const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
 
   return (
     <Canvas style={{ width: screenW, height: displayH }}>
       <Group transform={[{ scale }]}>
-        {config.archetypeId === 'strip' && <StripArchetype {...archetypeProps} />}
-        {config.archetypeId === 'editorial' && <EditorialArchetype {...archetypeProps} />}
-        {config.archetypeId === 'grid' && <GridArchetype {...archetypeProps} />}
-        {config.archetypeId === 'banner' && <BannerArchetype {...archetypeProps} />}
-        {config.archetypeId === 'side' && <SideArchetype {...archetypeProps} />}
+        <Group clip={clip}>
+          {config.archetypeId === 'strip' && <StripArchetype {...archetypeProps} />}
+          {config.archetypeId === 'editorial' && <EditorialArchetype {...archetypeProps} />}
+          {config.archetypeId === 'grid' && <GridArchetype {...archetypeProps} />}
+          {config.archetypeId === 'banner' && <BannerArchetype {...archetypeProps} />}
+          {config.archetypeId === 'side' && <SideArchetype {...archetypeProps} />}
+        </Group>
 
         {config.cardStyle === 'outlined' && (
           <RoundedRect

@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from './schema';
 
-let _db: SQLite.SQLiteDatabase | null = null;
+let _dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(`
@@ -29,9 +29,15 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
 }
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
-  if (_db) return _db;
-
-  _db = await SQLite.openDatabaseAsync('hued.db');
-  await runMigrations(_db);
-  return _db;
+  if (!_dbPromise) {
+    _dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync('hued.db');
+      await runMigrations(db);
+      return db;
+    })().catch((err) => {
+      _dbPromise = null;
+      throw err;
+    });
+  }
+  return _dbPromise;
 }

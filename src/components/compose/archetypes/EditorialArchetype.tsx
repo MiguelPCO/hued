@@ -1,19 +1,16 @@
-import { useMemo } from 'react';
 import {
   Circle,
   Group,
   Image,
   LinearGradient,
-  matchFont,
   Rect,
   Text,
   useImage,
   vec,
 } from '@shopify/react-native-skia';
-import { Platform } from 'react-native';
 import type { ArchetypeProps } from './types';
+import { useArchetypeFonts } from './shared';
 
-const FONT_FAMILY = Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto';
 const DOT_R = 14;
 const DOT_SPACING = 8;
 const SPACING_MD = 16;
@@ -25,8 +22,7 @@ export function EditorialArchetype({ palette, config, width, height }: Archetype
   const totalDotsW = palette.colors.length * (DOT_R * 2) + (palette.colors.length - 1) * DOT_SPACING;
   const dotStartX = (width - totalDotsW) / 2 + DOT_R;
 
-  const nameFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: 11 }), []);
-  const hexFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: 9 }), []);
+  const { hexFont, nameFont } = useArchetypeFonts(9, 11);
 
   return (
     <Group>

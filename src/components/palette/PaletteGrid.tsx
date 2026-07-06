@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
@@ -24,8 +24,6 @@ export function PaletteGrid({ onPressPalette }: Props) {
     setPalettes(data);
     setLoading(false);
   }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 

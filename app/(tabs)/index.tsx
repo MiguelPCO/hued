@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,9 +15,11 @@ export default function HomeScreen() {
   const [picking, setPicking] = useState(false);
   const [galleryDenied, setGalleryDenied] = useState(false);
 
-  useEffect(() => {
-    listPalettes().then((p) => setHasPalettes(p.length > 0));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      listPalettes().then((p) => setHasPalettes(p.length > 0));
+    }, [])
+  );
 
   const handlePressPalette = useCallback((id: string) => {
     router.push({ pathname: '/palette/[id]', params: { id } });
