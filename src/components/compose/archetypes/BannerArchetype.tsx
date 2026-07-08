@@ -5,7 +5,7 @@ import {
   Text,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
-import { getContrastTextColor, useArchetypeFonts } from './shared';
+import { getContrastTextColor, useArchetypeFonts, wrapMetadataInBlur } from './shared';
 
 const STRIP_H = 48;
 
@@ -27,9 +27,8 @@ export function BannerArchetype({ palette, config, width, height, image }: Arche
       {palette.colors.map((color, i) => {
         const x = i * barW;
         const textColor = getContrastTextColor(color.hslLightness);
-        return (
-          <Group key={i}>
-            <Rect x={x} y={stripY} width={barW} height={STRIP_H} color={color.hex + 'CC'} />
+        const metadataNode = (config.showHex || config.showName) && (
+          <Group>
             {config.showHex && (
               <Text
                 x={x + 6}
@@ -48,6 +47,13 @@ export function BannerArchetype({ palette, config, width, height, image }: Arche
                 color={textColor}
               />
             )}
+          </Group>
+        );
+        return (
+          <Group key={i}>
+            <Rect x={x} y={stripY} width={barW} height={STRIP_H} color={color.hex + 'CC'} />
+            {(config.showHex || config.showName) &&
+              wrapMetadataInBlur(config, metadataNode, { x, y: stripY, width: barW, height: STRIP_H })}
           </Group>
         );
       })}

@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useMemo } from 'react';
 import { BackdropBlur, matchFont, rect, RoundedRect, rrect } from '@shopify/react-native-skia';
 import type { SkRRect } from '@shopify/react-native-skia';
@@ -42,11 +42,17 @@ export interface CardFrame {
 }
 
 /**
- * Derives the clip region and cardStyle overlay ('outlined' stroke or 'blur'
- * backdrop) shared by ArchetypeCanvas.tsx (live preview) and
- * exportPalette.tsx (offscreen raster). Not a hook — rrect/rect/JSX
- * construction here is cheap, and exportPalette calls this from a plain
- * async function rather than a component render, where hooks aren't valid.
+ * Derives the clip region and cardStyle overlay shared by ArchetypeCanvas.tsx
+ * (live preview) and exportPalette.tsx (offscreen raster). Not a hook —
+ * rrect/rect/JSX construction here is cheap, and exportPalette calls this
+ * from a plain async function rather than a component render, where hooks
+ * aren't valid.
+ *
+ * `'blur'` has no whole-card overlay: blurring the entire painted card
+ * (photo + swatches + hex/name/RGB text) would blur the metadata text into
+ * illegibility, since `BackdropBlur` has no children here to render sharp on
+ * top. Instead each archetype applies `wrapMetadataInBlur` locally, per
+ * swatch, so only the frosted color patch sits behind its own crisp text.
  */
 export function getCardFrame(config: LayoutConfig, width: number, height: number): CardFrame {
   const clip = rrect(rect(0, 0, width, height), config.cornerRadius, config.cornerRadius);
@@ -65,9 +71,30 @@ export function getCardFrame(config: LayoutConfig, width: number, height: number
         style="stroke"
       />
     );
-  } else if (config.cardStyle === 'blur') {
-    overlay = <BackdropBlur blur={BLUR_RADIUS} clip={clip} />;
   }
 
   return { clip, overlay };
+}
+
+/**
+ * Wraps an archetype's metadata text (hex/name labels) in a local
+ * `BackdropBlur` scoped to that swatch's own region, when `cardStyle` is
+ * `'blur'`. The swatch's color `Rect`/`Circle` itself is drawn separately,
+ * full-color and unblurred (color accuracy matters) — only the text's own
+ * backdrop is frosted, with the text rendered sharp on top via
+ * `BackdropBlur`'s children. For any other `cardStyle`, returns `node`
+ * unchanged so behavior is identical to before this helper existed.
+ */
+export function wrapMetadataInBlur(
+  config: LayoutConfig,
+  node: ReactNode,
+  region: { x: number; y: number; width: number; height: number }
+): ReactNode {
+  if (config.cardStyle !== 'blur') return node;
+  const regionClip = rrect(rect(region.x, region.y, region.width, region.height), 0, 0);
+  return (
+    <BackdropBlur blur={BLUR_RADIUS} clip={regionClip}>
+      {node}
+    </BackdropBlur>
+  );
 }

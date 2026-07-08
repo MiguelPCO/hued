@@ -5,7 +5,7 @@ import {
   Text,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
-import { getContrastTextColor, useArchetypeFonts } from './shared';
+import { getContrastTextColor, useArchetypeFonts, wrapMetadataInBlur } from './shared';
 
 export function SideArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageW = width * 0.6;
@@ -24,9 +24,8 @@ export function SideArchetype({ palette, config, width, height, image }: Archety
       {palette.colors.map((color, i) => {
         const y = i * rowH;
         const textColor = getContrastTextColor(color.hslLightness);
-        return (
-          <Group key={i}>
-            <Rect x={imageW} y={y} width={sideW} height={rowH} color={color.hex} />
+        const metadataNode = (config.showHex || config.showName) && (
+          <Group>
             {config.showHex && (
               <Text
                 x={imageW + 6}
@@ -45,6 +44,13 @@ export function SideArchetype({ palette, config, width, height, image }: Archety
                 color={textColor}
               />
             )}
+          </Group>
+        );
+        return (
+          <Group key={i}>
+            <Rect x={imageW} y={y} width={sideW} height={rowH} color={color.hex} />
+            {(config.showHex || config.showName) &&
+              wrapMetadataInBlur(config, metadataNode, { x: imageW, y, width: sideW, height: rowH })}
           </Group>
         );
       })}
