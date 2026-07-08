@@ -37,8 +37,12 @@ interface RawColor {
 }
 
 // Tuned so ~4945 bestof entries reduce to roughly 1500 kept entries.
-const MIN_LAB_DISTANCE = 5;
-const MAX_ENTRIES = 1500;
+// MAX_ENTRIES is a safety net only — it must not bind at the chosen
+// MIN_LAB_DISTANCE, otherwise the dedup loop stops partway through the
+// (alphabetically-ordered) input and silently truncates the tail of the
+// alphabet from the output. Set well above the expected ~1500 result.
+const MIN_LAB_DISTANCE = 5.5;
+const MAX_ENTRIES = 3000;
 
 const GENERIC_NAME_PATTERNS = [
   /^color\s*\d+$/i,
