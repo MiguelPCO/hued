@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "preprocess-colors": "tsx scripts/preprocess-colors.ts"
   },
   "dependencies": {
     "@expo-google-fonts/instrument-serif": "^0.4.1",
@@ -18,6 +19,7 @@
     "@expo-google-fonts/outfit": "^0.4.3",
     "@sentry/react-native": "~7.2.0",
     "@shopify/react-native-skia": "2.2.12",
+    "color-name-list": "^14.45.0",
     "expo": "~54.0.33",
     "expo-application": "~7.0.8",
     "expo-camera": "~17.0.10",
@@ -56,6 +58,7 @@
     "eslint-config-prettier": "^10.1.8",
     "jest-expo": "~54.0.17",
     "prettier": "^3.8.3",
+    "tsx": "^4.23.0",
     "typescript": "~5.9.2"
   },
   "jest": {
