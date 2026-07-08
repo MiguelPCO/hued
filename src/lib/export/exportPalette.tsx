@@ -3,6 +3,7 @@ import type { SkImage } from '@shopify/react-native-skia';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { getCardFrame } from '@/components/compose/archetypes/shared';
+import { Watermark } from '@/components/compose/archetypes/Watermark';
 import { ARCHETYPES } from '@/data/archetypes';
 import type { LayoutConfig, Palette } from '@/types/palette';
 
@@ -46,6 +47,7 @@ export async function exportPalette(
         <Component {...archetypeProps} />
       </Group>
       {overlay}
+      {config.watermarkVisible && <Watermark width={CANVAS_W} height={CANVAS_H} />}
     </Group>
   );
 

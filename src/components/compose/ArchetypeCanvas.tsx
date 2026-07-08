@@ -2,6 +2,7 @@ import { Canvas, Group, useImage } from '@shopify/react-native-skia';
 import { useWindowDimensions } from 'react-native';
 
 import { getCardFrame } from '@/components/compose/archetypes/shared';
+import { Watermark } from '@/components/compose/archetypes/Watermark';
 import { ARCHETYPES } from '@/data/archetypes';
 import type { Palette, LayoutConfig } from '@/types/palette';
 
@@ -31,6 +32,7 @@ export function ArchetypeCanvas({ palette, config }: Props) {
         </Group>
 
         {overlay}
+        {config.watermarkVisible && <Watermark width={CANVAS_W} height={CANVAS_H} />}
       </Group>
     </Canvas>
   );
