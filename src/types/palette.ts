@@ -51,7 +51,7 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   showName: true,
   showRGB: false,
   fontFamily: 'sans',
-  cornerRadius: 8,
+  cornerRadius: 16,
   cardStyle: 'filled',
   watermarkVisible: true,
 };

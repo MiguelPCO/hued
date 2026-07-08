@@ -244,6 +244,39 @@ export default function PaletteScreen() {
 
         <View style={styles.section}>
           <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
+            ESQUINAS
+          </Text>
+          <View style={styles.fontRow}>
+            {[
+              { label: 'Recta', value: 0 },
+              { label: 'Redonda', value: 16 },
+              { label: 'Píldora', value: 9999 },
+            ].map(({ label, value }) => {
+              const active = config.cornerRadius === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.archPill, active && styles.archPillActive]}
+                  onPress={() => {
+                    updateConfig({ cornerRadius: value });
+                    trackEvent('config_changed', { config_key: 'cornerRadius' });
+                  }}
+                >
+                  <Text
+                    variant="small"
+                    weight={active ? 'semibold' : 'regular'}
+                    color={active ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
             ETIQUETAS
           </Text>
           {[
