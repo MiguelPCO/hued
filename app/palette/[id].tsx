@@ -23,15 +23,8 @@ import type { ExportResolution } from '@/lib/export/exportPalette';
 import { getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
-import type { ArchetypeId, LayoutConfig, Palette } from '@/types/palette';
-
-const ARCHETYPES: { id: ArchetypeId; label: string }[] = [
-  { id: 'strip', label: 'Franja' },
-  { id: 'editorial', label: 'Editorial' },
-  { id: 'grid', label: 'Cuadrícula' },
-  { id: 'banner', label: 'Banner' },
-  { id: 'side', label: 'Lateral' },
-];
+import { ARCHETYPES } from '@/data/archetypes';
+import type { LayoutConfig, Palette } from '@/types/palette';
 
 const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
   { value: '1x', label: '1×' },
@@ -192,7 +185,7 @@ export default function PaletteScreen() {
             ARQUETIPOS
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.archetypeScroll}>
-            {ARCHETYPES.map((a) => {
+            {Object.values(ARCHETYPES).map((a) => {
               const active = config.archetypeId === a.id;
               return (
                 <TouchableOpacity
@@ -208,7 +201,7 @@ export default function PaletteScreen() {
                     weight={active ? 'semibold' : 'regular'}
                     color={active ? Colors.accentForeground : Colors.textPrimary}
                   >
-                    {a.label}
+                    {a.displayName}
                   </Text>
                 </TouchableOpacity>
               );

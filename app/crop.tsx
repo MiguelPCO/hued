@@ -18,6 +18,7 @@ import { trackEvent } from '@/lib/analytics/events';
 import { extractColors, ExtractError } from '@/lib/color/extract';
 import { savePalette, updatePaletteColors } from '@/lib/db/palettes';
 import { optimize, thumbnail } from '@/lib/utils/image';
+import { ARCHETYPES } from '@/data/archetypes';
 import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
 import type { CaptureSource } from '@/types/palette';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -93,7 +94,10 @@ export default function CropScreen() {
         imageUri: optimizedUri,
         thumbnailUri: thumbUri,
         colors: [],
-        layoutConfig: DEFAULT_LAYOUT_CONFIG,
+        layoutConfig: {
+          ...DEFAULT_LAYOUT_CONFIG,
+          ...ARCHETYPES[DEFAULT_LAYOUT_CONFIG.archetypeId].defaultConfig,
+        },
         meta: {
           capturedAt: Date.now(),
           source: captureSource,
