@@ -277,6 +277,39 @@ export default function PaletteScreen() {
 
         <View style={styles.section}>
           <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
+            ESTILO DE TARJETA
+          </Text>
+          <View style={styles.fontRow}>
+            {[
+              { label: 'Sólido', key: 'filled' as const },
+              { label: 'Contorno', key: 'outlined' as const },
+              { label: 'Difuminado', key: 'blur' as const },
+            ].map(({ label, key }) => {
+              const active = config.cardStyle === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.archPill, active && styles.archPillActive]}
+                  onPress={() => {
+                    updateConfig({ cardStyle: key });
+                    trackEvent('config_changed', { config_key: 'cardStyle' });
+                  }}
+                >
+                  <Text
+                    variant="small"
+                    weight={active ? 'semibold' : 'regular'}
+                    color={active ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
             ETIQUETAS
           </Text>
           {[

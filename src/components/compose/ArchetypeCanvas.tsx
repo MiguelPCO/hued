@@ -1,6 +1,7 @@
-import { Canvas, Group, rrect, rect, RoundedRect, useImage } from '@shopify/react-native-skia';
+import { Canvas, Group, useImage } from '@shopify/react-native-skia';
 import { useWindowDimensions } from 'react-native';
 
+import { getCardFrame } from '@/components/compose/archetypes/shared';
 import { ARCHETYPES } from '@/data/archetypes';
 import type { Palette, LayoutConfig } from '@/types/palette';
 
@@ -19,7 +20,7 @@ export function ArchetypeCanvas({ palette, config }: Props) {
   const image = useImage(palette.imageUri);
 
   const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
-  const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
+  const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
   const { Component } = ARCHETYPES[config.archetypeId];
 
   return (
@@ -29,18 +30,7 @@ export function ArchetypeCanvas({ palette, config }: Props) {
           <Component {...archetypeProps} />
         </Group>
 
-        {config.cardStyle === 'outlined' && (
-          <RoundedRect
-            x={1}
-            y={1}
-            width={CANVAS_W - 2}
-            height={CANVAS_H - 2}
-            r={config.cornerRadius}
-            color="transparent"
-            strokeWidth={2}
-            style="stroke"
-          />
-        )}
+        {overlay}
       </Group>
     </Canvas>
   );

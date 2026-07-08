@@ -1,7 +1,8 @@
-import { Group, ImageFormat, RoundedRect, Skia, drawAsImage, rect, rrect } from '@shopify/react-native-skia';
+import { Group, ImageFormat, Skia, drawAsImage } from '@shopify/react-native-skia';
 import type { SkImage } from '@shopify/react-native-skia';
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { getCardFrame } from '@/components/compose/archetypes/shared';
 import { ARCHETYPES } from '@/data/archetypes';
 import type { LayoutConfig, Palette } from '@/types/palette';
 
@@ -26,7 +27,7 @@ export async function exportPalette(
 ): Promise<string> {
   const { width, height } = RESOLUTIONS[resolution];
   const scale = width / CANVAS_W;
-  const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
+  const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
 
   let image: SkImage | null = null;
   try {
@@ -44,18 +45,7 @@ export async function exportPalette(
       <Group clip={clip}>
         <Component {...archetypeProps} />
       </Group>
-      {config.cardStyle === 'outlined' && (
-        <RoundedRect
-          x={1}
-          y={1}
-          width={CANVAS_W - 2}
-          height={CANVAS_H - 2}
-          r={config.cornerRadius}
-          color="transparent"
-          strokeWidth={2}
-          style="stroke"
-        />
-      )}
+      {overlay}
     </Group>
   );
 

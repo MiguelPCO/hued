@@ -9,7 +9,7 @@ export interface ExtractedColor {
 
 export type ArchetypeId = 'strip' | 'editorial' | 'grid' | 'banner' | 'side';
 
-export type CardStyle = 'filled' | 'outlined';
+export type CardStyle = 'filled' | 'outlined' | 'blur';
 
 export interface LayoutConfig {
   archetypeId: ArchetypeId;
