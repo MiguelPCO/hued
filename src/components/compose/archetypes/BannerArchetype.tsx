@@ -13,7 +13,7 @@ export function BannerArchetype({ palette, config, width, height, image }: Arche
   const barW = width / 5;
   const stripY = height - STRIP_H;
 
-  const { hexFont, nameFont } = useArchetypeFonts(9, 8);
+  const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 9, 8);
 
   return (
     <Group>

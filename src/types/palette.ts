@@ -17,7 +17,7 @@ export interface LayoutConfig {
   showHex: boolean;
   showName: boolean;
   showRGB: boolean;
-  fontFamily: string;
+  fontFamily: 'sans' | 'serif' | 'mono';
   cornerRadius: number;
   cardStyle: CardStyle;
   watermarkVisible: boolean;

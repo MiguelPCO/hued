@@ -12,7 +12,7 @@ export function GridArchetype({ palette, config, width, height, image }: Archety
   const cellH = (height - imageH) / 3;
   const cellW = width / 2;
 
-  const { hexFont, nameFont } = useArchetypeFonts(10, 9);
+  const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 10, 9);
 
   return (
     <Group>

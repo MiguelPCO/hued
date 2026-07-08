@@ -12,7 +12,7 @@ export function SideArchetype({ palette, config, width, height, image }: Archety
   const sideW = width - imageW;
   const rowH = height / 5;
 
-  const { hexFont, nameFont } = useArchetypeFonts(8, 7);
+  const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 8, 7);
 
   return (
     <Group>

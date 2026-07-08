@@ -20,7 +20,7 @@ export function EditorialArchetype({ palette, config, width, height, image }: Ar
   const totalDotsW = palette.colors.length * (DOT_R * 2) + (palette.colors.length - 1) * DOT_SPACING;
   const dotStartX = (width - totalDotsW) / 2 + DOT_R;
 
-  const { hexFont, nameFont } = useArchetypeFonts(9, 11);
+  const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 9, 11);
 
   return (
     <Group>

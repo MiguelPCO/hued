@@ -211,6 +211,39 @@ export default function PaletteScreen() {
 
         <View style={styles.section}>
           <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
+            TIPOGRAFÍA
+          </Text>
+          <View style={styles.fontRow}>
+            {[
+              { label: 'Moderna', key: 'sans' as const },
+              { label: 'Clásica', key: 'serif' as const },
+              { label: 'Técnica', key: 'mono' as const },
+            ].map(({ label, key }) => {
+              const active = config.fontFamily === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.archPill, active && styles.archPillActive]}
+                  onPress={() => {
+                    updateConfig({ fontFamily: key });
+                    trackEvent('config_changed', { config_key: 'fontFamily' });
+                  }}
+                >
+                  <Text
+                    variant="small"
+                    weight={active ? 'semibold' : 'regular'}
+                    color={active ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
             ETIQUETAS
           </Text>
           {[
@@ -316,6 +349,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   archPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  fontRow: { flexDirection: 'row' },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',

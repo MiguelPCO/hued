@@ -4,14 +4,19 @@ import { Platform } from 'react-native';
 
 import { Primitive } from '@/lib/tokens';
 
-export const FONT_FAMILY = Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto';
+const FONT_FAMILIES: Record<'sans' | 'serif' | 'mono', { ios: string; android: string }> = {
+  sans: { ios: 'Helvetica Neue', android: 'Roboto' },
+  serif: { ios: 'Georgia', android: 'serif' },
+  mono: { ios: 'Courier', android: 'monospace' },
+};
 
 export function getContrastTextColor(hslLightness: number): string {
   return hslLightness > 0.5 ? Primitive.black : Primitive.white;
 }
 
-export function useArchetypeFonts(hexSize: number, nameSize: number) {
-  const hexFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: hexSize }), [hexSize]);
-  const nameFont = useMemo(() => matchFont({ fontFamily: FONT_FAMILY, fontSize: nameSize }), [nameSize]);
+export function useArchetypeFonts(fontKey: 'sans' | 'serif' | 'mono', hexSize: number, nameSize: number) {
+  const fontFamily = Platform.OS === 'ios' ? FONT_FAMILIES[fontKey].ios : FONT_FAMILIES[fontKey].android;
+  const hexFont = useMemo(() => matchFont({ fontFamily, fontSize: hexSize }), [fontFamily, hexSize]);
+  const nameFont = useMemo(() => matchFont({ fontFamily, fontSize: nameSize }), [fontFamily, nameSize]);
   return { hexFont, nameFont };
 }

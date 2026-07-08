@@ -12,7 +12,7 @@ export function StripArchetype({ palette, config, width, height, image }: Archet
   const stripH = height * 0.3;
   const barW = width / 5;
 
-  const { hexFont, nameFont } = useArchetypeFonts(9, 8);
+  const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 9, 8);
 
   return (
     <Group>
