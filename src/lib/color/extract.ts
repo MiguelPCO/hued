@@ -143,5 +143,5 @@ export async function extractColors(thumbnailUri: string): Promise<ExtractedColo
     };
   });
 
-  return colors.sort((a, b) => b.weight - a.weight);
+  return colors.sort((a, b) => b.lab[0] - a.lab[0]);
 }

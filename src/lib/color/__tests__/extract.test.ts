@@ -42,12 +42,12 @@ describe('extractColors', () => {
     expect(colors).toHaveLength(5);
   });
 
-  it('colors are sorted by weight descending', async () => {
+  it('colors are sorted by L-channel descending (light to dark)', async () => {
     const pixels = solidPixels(200, 50, 50, 100);
     (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(pixels));
     const colors = await extractColors('file:///thumb.jpg');
     for (let i = 0; i < colors.length - 1; i++) {
-      expect(colors[i].weight).toBeGreaterThanOrEqual(colors[i + 1].weight);
+      expect(colors[i].lab[0]).toBeGreaterThanOrEqual(colors[i + 1].lab[0]);
     }
   });
 
