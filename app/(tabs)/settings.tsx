@@ -10,10 +10,10 @@ export default function SettingsScreen() {
       <View style={styles.header}>
         <Text variant="h1">Ajustes</Text>
       </View>
-      {/* Sprint 5: Subscription + preferences go here */}
+      {/* Sprint 6: Subscription + preferences go here */}
       <View style={styles.placeholder}>
         <Text variant="body" color={Colors.textSecondary}>
-          Perfil y suscripción — Sprint 5
+          Perfil y suscripción — Sprint 6
         </Text>
       </View>
     </SafeAreaView>

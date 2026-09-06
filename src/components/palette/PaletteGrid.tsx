@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
 import { PaletteCard } from './PaletteCard';
+import { Text } from '@/components/ui/Text';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 import { listPalettes } from '@/lib/db/palettes';
 import { paletteMatchesQuery } from '@/lib/search/normalize';
@@ -74,6 +75,15 @@ export function PaletteGrid({ onPressPalette, filter, query, onPalettesChange }:
       keyExtractor={(p) => p.id}
       numColumns={2}
       contentContainerStyle={styles.list}
+      ListEmptyComponent={
+        palettes.length > 0 ? (
+          <View style={styles.emptyState}>
+            <Text variant="body" color={Colors.textSecondary} style={styles.centered}>
+              Sin resultados para tu búsqueda
+            </Text>
+          </View>
+        ) : null
+      }
       renderItem={({ item }) => (
         <PaletteCard
           palette={item}
@@ -101,4 +111,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     backgroundColor: Colors.bgSecondary,
   },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    minHeight: 200,
+  },
+  centered: { textAlign: 'center' },
 });
