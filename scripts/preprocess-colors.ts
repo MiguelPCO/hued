@@ -48,7 +48,11 @@ const GENERIC_NAME_PATTERNS = [
   /^color\s*\d+$/i,
   /^#?[0-9a-f]{6}$/i,
   /^#?[0-9a-f]{3}$/i,
-  /^\d+$/,
+  // Real paint/color names essentially never start with a digit ("100 Mph",
+  // "24 Carrot", "3AM Breakup"). `bestof`'s curation still lets a handful of
+  // these numeric-leading, non-evocative entries through. This subsumes the
+  // previous fully-numeric-only check (`/^\d+$/`) as well.
+  /^\d/,
 ];
 
 function isGenericName(name: string): boolean {
