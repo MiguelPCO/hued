@@ -7,6 +7,14 @@ import { Platform } from 'react-native';
 import { Primitive } from '@/lib/tokens';
 import type { LayoutConfig } from '@/types/palette';
 
+// Sentinel `cornerRadius` value for the config panel's "Píldora" (Pill)
+// preset (app/palette/[id].tsx). Deliberately far larger than any real
+// half-dimension of the canvas so it always clamps to the maximum the Skia
+// rrect will allow, regardless of which canvas size (preview vs. any export
+// resolution) is active — see the correctness note on that clamping
+// behavior in `Watermark.tsx`'s doc comment.
+export const PILL_CORNER_RADIUS = 9999;
+
 export const FONT_FAMILIES: Record<'sans' | 'serif' | 'mono', { ios: string; android: string }> = {
   sans: { ios: 'Helvetica Neue', android: 'Roboto' },
   serif: { ios: 'Georgia', android: 'serif' },

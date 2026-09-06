@@ -7,6 +7,16 @@ import { FONT_FAMILIES } from '@/components/compose/archetypes/shared';
 const WATERMARK_TEXT = 'hued';
 const WATERMARK_FONT_SIZE = 11;
 const WATERMARK_MARGIN = 20;
+// Nudges the watermark a little below the exact vertical center. At
+// cornerRadius = PILL_CORNER_RADIUS the safe placement is the ellipse
+// vertex at (width, height/2) (see the doc comment below), but the exact
+// center of a 5-row `SideArchetype` (rowH = height/5) lands squarely
+// between that row's own hex/name text baselines with very little
+// clearance. This offset is small enough that the position stays deep
+// inside the safe ellipse for every cornerRadius preset (see the ellipse
+// math in the doc comment below), while landing in the gap between
+// SideArchetype's mid-row hex and name text instead of straddling them.
+const WATERMARK_VERTICAL_OFFSET = 10;
 const WATERMARK_COLOR = 'rgba(255,255,255,0.6)';
 // The watermark can sit over an arbitrary photo or swatch color (this
 // component has no knowledge of what's behind it — unlike the archetype
@@ -33,11 +43,11 @@ interface Props {
    * config.cornerRadius, pre-clamp. Not read by this component's own
    * position math below — the right-edge/vertically-centered placement is
    * deliberately chosen so it lands inside Skia's rrect clip for every
-   * effective radius from 0 up to width/2 (see the doc comment on
-   * `Watermark` for why), so no per-preset branching on this value is
-   * needed. Accepted anyway (rather than dropped) so callers stay honest
-   * about the dependency this component's *placement contract* has on
-   * cornerRadius, and so a future change to the placement strategy (e.g.
+   * cornerRadius preset, from Sharp (0) up through Pill (see the doc
+   * comment on `Watermark` for why), so no per-preset branching on this
+   * value is needed. Accepted anyway (rather than dropped) so callers stay
+   * honest about the dependency this component's *placement contract* has
+   * on cornerRadius, and so a future change to the placement strategy (e.g.
    * reverting to a corner anchor for Sharp/Rounded) has the value already
    * threaded through both call sites without another prop-plumbing pass.
    */
@@ -50,19 +60,33 @@ interface Props {
  * proportionally correctly placed whether drawn at live-preview scale or
  * export raster resolution.
  *
- * Positioning: this canvas is always portrait (height > width — see
- * CANVAS_W/CANVAS_H in ArchetypeCanvas.tsx/exportPalette.tsx), so Skia's
- * rrect clip (SkRRect::setRectXY) can never clamp the corner radius past
- * width/2. At that maximum the card becomes a "stadium" shape — semicircular
- * caps on the short top/bottom axis, but a flat vertical run down the middle
- * of the left/right edges that exists (and shrinks, but never disappears)
- * for every radius from 0 up to that max. Anchoring the watermark against
- * the right edge, vertically centered on the canvas, keeps it inside that
- * guaranteed-flat run for every cornerRadius preset (Sharp/Rounded/Pill)
- * without per-preset special-casing. This trades the old "bottom-right
- * corner" resting spot (fine for Sharp/Rounded, but which floats outside the
- * clip entirely under Pill) for a placement that's provably always inside
- * the visible card, regardless of cornerRadius.
+ * Positioning: getCardFrame builds the clip as
+ * `rrect(rect(0, 0, width, height), cornerRadius, cornerRadius)`. Skia's
+ * SkRRect clamps rx to at most width/2 and ry to at most height/2
+ * *independently* — it does not clamp them proportionally to preserve a
+ * shared max. At the config panel's "Píldora" preset
+ * (`PILL_CORNER_RADIUS`, shared.tsx — deliberately far larger than either
+ * half-dimension), BOTH rx and ry hit their respective clamps at once. On
+ * this canvas (width=360 ≠ height=450) that means the corner arcs consume
+ * the *entire* straight run on every edge simultaneously: 2×rx = width and
+ * 2×ry = height, so no flat segment survives on the top/bottom or the
+ * left/right edges. The rrect degenerates into a full ellipse inscribed in
+ * the rect — not a "stadium" with a surviving flat run. That ellipse
+ * touches the left/right edges at exactly one point each: its vertices at
+ * (0, height/2) and (width, height/2).
+ *
+ * So the right-edge, vertically-centered placement isn't safe because a
+ * flat run "never disappears" (it does, completely, at this preset) — it's
+ * safe because it sits at the ellipse's own vertex, a point of zero
+ * curvature along the vertical tangent, which is inside the clip by
+ * construction for every cornerRadius from 0 up to this max (smaller
+ * presets like Sharp/Rounded intrude far less at the corners, leaving a
+ * wide literal flat run that comfortably contains the same position too).
+ * `WATERMARK_VERTICAL_OFFSET` nudges a few pixels off that exact vertex to
+ * dodge `SideArchetype`'s mid-canvas row text (see its constant's doc
+ * comment) — the offset is small enough that the position stays well
+ * inside the ellipse at every preset (verified: at height/2 + 10, the
+ * ellipse still permits x up to ~359.8 out of width 360).
  */
 export function Watermark({ width, height, cornerRadius }: Props) {
   const font = useMemo(
@@ -74,7 +98,7 @@ export function Watermark({ width, height, cornerRadius }: Props) {
   // than merely starting near it (Skia's Text has no built-in text-align).
   const approxTextWidth = WATERMARK_TEXT.length * WATERMARK_FONT_SIZE * 0.6;
   const x = width - WATERMARK_MARGIN - approxTextWidth;
-  const y = height / 2;
+  const y = height / 2 + WATERMARK_VERTICAL_OFFSET;
 
   return (
     <>
