@@ -32,7 +32,9 @@ export function ArchetypeCanvas({ palette, config }: Props) {
         </Group>
 
         {overlay}
-        {config.watermarkVisible && <Watermark width={CANVAS_W} height={CANVAS_H} />}
+        {config.watermarkVisible && (
+          <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
+        )}
       </Group>
     </Canvas>
   );

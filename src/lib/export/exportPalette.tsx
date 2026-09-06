@@ -47,7 +47,9 @@ export async function exportPalette(
         <Component {...archetypeProps} />
       </Group>
       {overlay}
-      {config.watermarkVisible && <Watermark width={CANVAS_W} height={CANVAS_H} />}
+      {config.watermarkVisible && (
+        <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
+      )}
     </Group>
   );
 

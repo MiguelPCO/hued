@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 import { Primitive } from '@/lib/tokens';
 import type { LayoutConfig } from '@/types/palette';
 
-const FONT_FAMILIES: Record<'sans' | 'serif' | 'mono', { ios: string; android: string }> = {
+export const FONT_FAMILIES: Record<'sans' | 'serif' | 'mono', { ios: string; android: string }> = {
   sans: { ios: 'Helvetica Neue', android: 'Roboto' },
   serif: { ios: 'Georgia', android: 'serif' },
   mono: { ios: 'Courier', android: 'monospace' },
