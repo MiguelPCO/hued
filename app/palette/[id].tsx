@@ -23,6 +23,7 @@ import type { ExportResolution } from '@/lib/export/exportPalette';
 import { getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
+import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
 import { ARCHETYPES } from '@/data/archetypes';
 import type { LayoutConfig, Palette } from '@/types/palette';
 
@@ -30,6 +31,16 @@ const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
   { value: '1x', label: '1×' },
   { value: '2x', label: '2×' },
   { value: '4x', label: '4×' },
+];
+
+// "Difuminado" (blur) is filtered out per-archetype below (see
+// ArchetypeDefinition.supportsBlur in src/data/archetypes.ts) — it's a
+// visual no-op on strip/grid/side, where the blurred backdrop is just the
+// same flat swatch color already drawn underneath it.
+const CARD_STYLE_OPTIONS = [
+  { label: 'Sólido', key: 'filled' as const },
+  { label: 'Contorno', key: 'outlined' as const },
+  { label: 'Difuminado', key: 'blur' as const },
 ];
 
 export default function PaletteScreen() {
@@ -250,7 +261,7 @@ export default function PaletteScreen() {
             {[
               { label: 'Recta', value: 0 },
               { label: 'Redonda', value: 16 },
-              { label: 'Píldora', value: 9999 },
+              { label: 'Píldora', value: PILL_CORNER_RADIUS },
             ].map(({ label, value }) => {
               const active = config.cornerRadius === value;
               return (
@@ -280,11 +291,9 @@ export default function PaletteScreen() {
             ESTILO DE TARJETA
           </Text>
           <View style={styles.fontRow}>
-            {[
-              { label: 'Sólido', key: 'filled' as const },
-              { label: 'Contorno', key: 'outlined' as const },
-              { label: 'Difuminado', key: 'blur' as const },
-            ].map(({ label, key }) => {
+            {CARD_STYLE_OPTIONS.filter(
+              (opt) => opt.key !== 'blur' || ARCHETYPES[config.archetypeId].supportsBlur
+            ).map(({ label, key }) => {
               const active = config.cardStyle === key;
               return (
                 <TouchableOpacity
