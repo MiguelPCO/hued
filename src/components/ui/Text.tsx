@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   h1: {
     fontSize: FontSize['2xl'],
     lineHeight: FontSize['2xl'] * 1.25,
-    fontWeight: FontWeight.bold,
+    fontFamily: FontFamily.display,
   },
   h2: {
     fontSize: FontSize.xl,

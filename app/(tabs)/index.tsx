@@ -7,6 +7,7 @@ import { launchGalleryPicker } from '@/components/capture/GalleryPicker';
 import { PaletteGrid } from '@/components/palette/PaletteGrid';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { listPalettes } from '@/lib/db/palettes';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -62,6 +63,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StripeBar />
       <View style={styles.header}>
         <Text variant="h1">Hued</Text>
         <Text variant="small" color={Colors.textSecondary}>Tus paletas</Text>

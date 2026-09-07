@@ -10,6 +10,7 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -79,6 +80,10 @@ export function CameraView({ onCapture, onCancel }: Props) {
       <ExpoCameraView ref={cameraRef} style={styles.camera} facing={facing} flash={flash}>
         {showGrid && <GridOverlay />}
 
+        <View style={styles.stripeOverlay} pointerEvents="none">
+          <StripeBar />
+        </View>
+
         <SafeAreaView style={styles.topBar} edges={['top']}>
           <TouchableOpacity style={styles.iconBtn} onPress={onCancel}>
             <Text style={styles.iconTxt}>X</Text>
@@ -146,6 +151,7 @@ function GridOverlay() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgInverse },
   camera: { flex: 1 },
+  stripeOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
