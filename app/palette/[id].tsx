@@ -56,8 +56,6 @@ export default function PaletteScreen() {
   const [exportError, setExportError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<(() => void) | null>(null);
-  const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
-  const exportDailyCount = useSettingsStore((s) => s.exportDailyCount);
   const incrementDailyExportCount = useSettingsStore((s) => s.incrementExportCount);
 
   useEffect(() => {
@@ -115,8 +113,15 @@ export default function PaletteScreen() {
   async function handleExport(resolution: ExportResolution) {
     if (!palette || !config) return;
 
-    if (!canExportToday(subscriptionStatus, exportDailyCount)) {
-      trackEvent('paywall_shown', { trigger: 'export_limit' });
+    // Reset the daily count BEFORE reading it below — otherwise a free user
+    // who hit the limit yesterday stays permanently blocked, since
+    // incrementExportCount() (which also runs this check) never executes
+    // once the gate below routes them to /paywall instead of exporting.
+    useSettingsStore.getState().resetExportCountIfNewDay();
+    const { subscriptionStatus: currentSubscriptionStatus, exportDailyCount: currentExportDailyCount } =
+      useSettingsStore.getState();
+
+    if (!canExportToday(currentSubscriptionStatus, currentExportDailyCount)) {
       setExportSheetVisible(false);
       router.push({ pathname: '/paywall', params: { trigger: 'export_limit' } });
       return;
@@ -187,7 +192,6 @@ export default function PaletteScreen() {
           palette={palette}
           config={config}
           onWatermarkPress={() => {
-            trackEvent('paywall_shown', { trigger: 'watermark_tap' });
             router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
           }}
         />
