@@ -183,7 +183,14 @@ export default function PaletteScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ArchetypeCanvas palette={palette} config={config} />
+        <ArchetypeCanvas
+          palette={palette}
+          config={config}
+          onWatermarkPress={() => {
+            trackEvent('paywall_shown', { trigger: 'watermark_tap' });
+            router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
+          }}
+        />
 
         {palette.colors.length === 0 ? (
           <View style={styles.errorBanner}>

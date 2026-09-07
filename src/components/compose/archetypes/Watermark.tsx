@@ -113,3 +113,25 @@ export function Watermark({ width, height, cornerRadius }: Props) {
     </>
   );
 }
+
+/**
+ * The screen region (in the same design-unit space as `Watermark`'s own
+ * `x`/`y` math above) a tap target should cover to hit the rendered mark.
+ * Kept in this file, next to the render math it mirrors, so the two never
+ * drift apart — `ArchetypeCanvas.tsx` uses this to position an absolutely-
+ * positioned `Pressable` sibling of the Skia `<Canvas>` (Skia text isn't
+ * natively tappable).
+ */
+export function getWatermarkTapRegion(width: number, height: number) {
+  const approxTextWidth = WATERMARK_TEXT.length * WATERMARK_FONT_SIZE * 0.6;
+  const centerX = width - WATERMARK_MARGIN - approxTextWidth / 2;
+  const centerY = height / 2 + WATERMARK_VERTICAL_OFFSET;
+  const tapWidth = 64;
+  const tapHeight = 44;
+  return {
+    x: centerX - tapWidth / 2,
+    y: centerY - tapHeight / 2,
+    width: tapWidth,
+    height: tapHeight,
+  };
+}
