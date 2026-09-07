@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArchetypeCanvas } from '@/components/compose/ArchetypeCanvas';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
+import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { extractColors, ExtractError } from '@/lib/color/extract';
 import { exportPalette, RESOLUTIONS } from '@/lib/export/exportPalette';
@@ -181,6 +182,7 @@ export default function PaletteScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StripeBar />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text variant="body" color={Colors.accent}>← Volver</Text>
