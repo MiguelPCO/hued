@@ -1,11 +1,9 @@
-import { Canvas, Group, rrect, rect, RoundedRect, useImage } from '@shopify/react-native-skia';
+import { Canvas, Group, useImage } from '@shopify/react-native-skia';
 import { useWindowDimensions } from 'react-native';
 
-import { BannerArchetype } from './archetypes/BannerArchetype';
-import { EditorialArchetype } from './archetypes/EditorialArchetype';
-import { GridArchetype } from './archetypes/GridArchetype';
-import { SideArchetype } from './archetypes/SideArchetype';
-import { StripArchetype } from './archetypes/StripArchetype';
+import { getCardFrame } from '@/components/compose/archetypes/shared';
+import { Watermark } from '@/components/compose/archetypes/Watermark';
+import { ARCHETYPES } from '@/data/archetypes';
 import type { Palette, LayoutConfig } from '@/types/palette';
 
 interface Props {
@@ -23,30 +21,19 @@ export function ArchetypeCanvas({ palette, config }: Props) {
   const image = useImage(palette.imageUri);
 
   const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
-  const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
+  const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
+  const { Component } = ARCHETYPES[config.archetypeId];
 
   return (
     <Canvas style={{ width: screenW, height: displayH }}>
       <Group transform={[{ scale }]}>
         <Group clip={clip}>
-          {config.archetypeId === 'strip' && <StripArchetype {...archetypeProps} />}
-          {config.archetypeId === 'editorial' && <EditorialArchetype {...archetypeProps} />}
-          {config.archetypeId === 'grid' && <GridArchetype {...archetypeProps} />}
-          {config.archetypeId === 'banner' && <BannerArchetype {...archetypeProps} />}
-          {config.archetypeId === 'side' && <SideArchetype {...archetypeProps} />}
+          <Component {...archetypeProps} />
         </Group>
 
-        {config.cardStyle === 'outlined' && (
-          <RoundedRect
-            x={1}
-            y={1}
-            width={CANVAS_W - 2}
-            height={CANVAS_H - 2}
-            r={config.cornerRadius}
-            color="transparent"
-            strokeWidth={2}
-            style="stroke"
-          />
+        {overlay}
+        {config.watermarkVisible && (
+          <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
         )}
       </Group>
     </Canvas>

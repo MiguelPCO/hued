@@ -23,20 +23,24 @@ import type { ExportResolution } from '@/lib/export/exportPalette';
 import { getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
-import type { ArchetypeId, LayoutConfig, Palette } from '@/types/palette';
-
-const ARCHETYPES: { id: ArchetypeId; label: string }[] = [
-  { id: 'strip', label: 'Franja' },
-  { id: 'editorial', label: 'Editorial' },
-  { id: 'grid', label: 'Cuadrícula' },
-  { id: 'banner', label: 'Banner' },
-  { id: 'side', label: 'Lateral' },
-];
+import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
+import { ARCHETYPES } from '@/data/archetypes';
+import type { LayoutConfig, Palette } from '@/types/palette';
 
 const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
   { value: '1x', label: '1×' },
   { value: '2x', label: '2×' },
   { value: '4x', label: '4×' },
+];
+
+// "Difuminado" (blur) is filtered out per-archetype below (see
+// ArchetypeDefinition.supportsBlur in src/data/archetypes.ts) — it's a
+// visual no-op on strip/grid/side, where the blurred backdrop is just the
+// same flat swatch color already drawn underneath it.
+const CARD_STYLE_OPTIONS = [
+  { label: 'Sólido', key: 'filled' as const },
+  { label: 'Contorno', key: 'outlined' as const },
+  { label: 'Difuminado', key: 'blur' as const },
 ];
 
 export default function PaletteScreen() {
@@ -192,7 +196,7 @@ export default function PaletteScreen() {
             ARQUETIPOS
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.archetypeScroll}>
-            {ARCHETYPES.map((a) => {
+            {Object.values(ARCHETYPES).map((a) => {
               const active = config.archetypeId === a.id;
               return (
                 <TouchableOpacity
@@ -208,12 +212,109 @@ export default function PaletteScreen() {
                     weight={active ? 'semibold' : 'regular'}
                     color={active ? Colors.accentForeground : Colors.textPrimary}
                   >
-                    {a.label}
+                    {a.displayName}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
+            TIPOGRAFÍA
+          </Text>
+          <View style={styles.fontRow}>
+            {[
+              { label: 'Moderna', key: 'sans' as const },
+              { label: 'Clásica', key: 'serif' as const },
+              { label: 'Técnica', key: 'mono' as const },
+            ].map(({ label, key }) => {
+              const active = config.fontFamily === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.archPill, active && styles.archPillActive]}
+                  onPress={() => {
+                    updateConfig({ fontFamily: key });
+                    trackEvent('config_changed', { config_key: 'fontFamily' });
+                  }}
+                >
+                  <Text
+                    variant="small"
+                    weight={active ? 'semibold' : 'regular'}
+                    color={active ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
+            ESQUINAS
+          </Text>
+          <View style={styles.fontRow}>
+            {[
+              { label: 'Recta', value: 0 },
+              { label: 'Redonda', value: 16 },
+              { label: 'Píldora', value: PILL_CORNER_RADIUS },
+            ].map(({ label, value }) => {
+              const active = config.cornerRadius === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.archPill, active && styles.archPillActive]}
+                  onPress={() => {
+                    updateConfig({ cornerRadius: value });
+                    trackEvent('config_changed', { config_key: 'cornerRadius' });
+                  }}
+                >
+                  <Text
+                    variant="small"
+                    weight={active ? 'semibold' : 'regular'}
+                    color={active ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
+            ESTILO DE TARJETA
+          </Text>
+          <View style={styles.fontRow}>
+            {CARD_STYLE_OPTIONS.filter(
+              (opt) => opt.key !== 'blur' || ARCHETYPES[config.archetypeId].supportsBlur
+            ).map(({ label, key }) => {
+              const active = config.cardStyle === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.archPill, active && styles.archPillActive]}
+                  onPress={() => {
+                    updateConfig({ cardStyle: key });
+                    trackEvent('config_changed', { config_key: 'cardStyle' });
+                  }}
+                >
+                  <Text
+                    variant="small"
+                    weight={active ? 'semibold' : 'regular'}
+                    color={active ? Colors.accentForeground : Colors.textPrimary}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -323,6 +424,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   archPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  fontRow: { flexDirection: 'row' },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',

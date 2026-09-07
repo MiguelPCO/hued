@@ -1,12 +1,10 @@
-import { Group, ImageFormat, RoundedRect, Skia, drawAsImage, rect, rrect } from '@shopify/react-native-skia';
+import { Group, ImageFormat, Skia, drawAsImage } from '@shopify/react-native-skia';
 import type { SkImage } from '@shopify/react-native-skia';
 import * as FileSystem from 'expo-file-system/legacy';
 
-import { BannerArchetype } from '@/components/compose/archetypes/BannerArchetype';
-import { EditorialArchetype } from '@/components/compose/archetypes/EditorialArchetype';
-import { GridArchetype } from '@/components/compose/archetypes/GridArchetype';
-import { SideArchetype } from '@/components/compose/archetypes/SideArchetype';
-import { StripArchetype } from '@/components/compose/archetypes/StripArchetype';
+import { getCardFrame } from '@/components/compose/archetypes/shared';
+import { Watermark } from '@/components/compose/archetypes/Watermark';
+import { ARCHETYPES } from '@/data/archetypes';
 import type { LayoutConfig, Palette } from '@/types/palette';
 
 export type ExportResolution = '1x' | '2x' | '4x';
@@ -23,22 +21,6 @@ export const RESOLUTIONS: Record<ExportResolution, { width: number; height: numb
   '4x': { width: 4320, height: 5400 },
 };
 
-function renderArchetype(palette: Palette, config: LayoutConfig, image: SkImage | null) {
-  const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
-  switch (config.archetypeId) {
-    case 'strip':
-      return <StripArchetype {...archetypeProps} />;
-    case 'editorial':
-      return <EditorialArchetype {...archetypeProps} />;
-    case 'grid':
-      return <GridArchetype {...archetypeProps} />;
-    case 'banner':
-      return <BannerArchetype {...archetypeProps} />;
-    case 'side':
-      return <SideArchetype {...archetypeProps} />;
-  }
-}
-
 export async function exportPalette(
   palette: Palette,
   config: LayoutConfig,
@@ -46,7 +28,7 @@ export async function exportPalette(
 ): Promise<string> {
   const { width, height } = RESOLUTIONS[resolution];
   const scale = width / CANVAS_W;
-  const clip = rrect(rect(0, 0, CANVAS_W, CANVAS_H), config.cornerRadius, config.cornerRadius);
+  const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
 
   let image: SkImage | null = null;
   try {
@@ -56,20 +38,17 @@ export async function exportPalette(
     image = null;
   }
 
+  const { Component } = ARCHETYPES[config.archetypeId];
+  const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
+
   const element = (
     <Group transform={[{ scale }]}>
-      <Group clip={clip}>{renderArchetype(palette, config, image)}</Group>
-      {config.cardStyle === 'outlined' && (
-        <RoundedRect
-          x={1}
-          y={1}
-          width={CANVAS_W - 2}
-          height={CANVAS_H - 2}
-          r={config.cornerRadius}
-          color="transparent"
-          strokeWidth={2}
-          style="stroke"
-        />
+      <Group clip={clip}>
+        <Component {...archetypeProps} />
+      </Group>
+      {overlay}
+      {config.watermarkVisible && (
+        <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
       )}
     </Group>
   );

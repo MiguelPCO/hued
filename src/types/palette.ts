@@ -9,7 +9,7 @@ export interface ExtractedColor {
 
 export type ArchetypeId = 'strip' | 'editorial' | 'grid' | 'banner' | 'side';
 
-export type CardStyle = 'filled' | 'outlined';
+export type CardStyle = 'filled' | 'outlined' | 'blur';
 
 export interface LayoutConfig {
   archetypeId: ArchetypeId;
@@ -17,7 +17,7 @@ export interface LayoutConfig {
   showHex: boolean;
   showName: boolean;
   showRGB: boolean;
-  fontFamily: string;
+  fontFamily: 'sans' | 'serif' | 'mono';
   cornerRadius: number;
   cardStyle: CardStyle;
   watermarkVisible: boolean;
@@ -51,7 +51,12 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   showName: true,
   showRGB: false,
   fontFamily: 'sans',
-  cornerRadius: 8,
+  cornerRadius: 16,
   cardStyle: 'filled',
-  watermarkVisible: true,
+  // Off by default: the paywall/gate deciding when to show branding is
+  // Sprint 6 (monetization) scope, not built yet. Shipping this ON with no
+  // way to disable it would force permanent branding on every export before
+  // that gate exists. The component/wiring stays fully implemented — this
+  // is a one-line default flip, not a removal.
+  watermarkVisible: false,
 };

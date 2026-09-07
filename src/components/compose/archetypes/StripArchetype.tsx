@@ -5,14 +5,14 @@ import {
   Text,
 } from '@shopify/react-native-skia';
 import type { ArchetypeProps } from './types';
-import { getContrastTextColor, useArchetypeFonts } from './shared';
+import { getContrastTextColor, useArchetypeFonts, wrapMetadataInBlur } from './shared';
 
 export function StripArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageH = height * 0.7;
   const stripH = height * 0.3;
   const barW = width / 5;
 
-  const { hexFont, nameFont } = useArchetypeFonts(9, 8);
+  const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 9, 8);
 
   return (
     <Group>
@@ -24,9 +24,8 @@ export function StripArchetype({ palette, config, width, height, image }: Archet
       {palette.colors.map((color, i) => {
         const x = i * barW;
         const textColor = getContrastTextColor(color.hslLightness);
-        return (
-          <Group key={i}>
-            <Rect x={x} y={imageH} width={barW} height={stripH} color={color.hex} />
+        const metadataNode = (config.showHex || config.showName) && (
+          <Group>
             {config.showHex && (
               <Text
                 x={x + barW / 2 - 16}
@@ -45,6 +44,13 @@ export function StripArchetype({ palette, config, width, height, image }: Archet
                 color={textColor}
               />
             )}
+          </Group>
+        );
+        return (
+          <Group key={i}>
+            <Rect x={x} y={imageH} width={barW} height={stripH} color={color.hex} />
+            {(config.showHex || config.showName) &&
+              wrapMetadataInBlur(config, metadataNode, { x, y: imageH, width: barW, height: stripH })}
           </Group>
         );
       })}
