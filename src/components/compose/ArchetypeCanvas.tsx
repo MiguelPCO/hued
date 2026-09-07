@@ -1,9 +1,10 @@
 import { Canvas, Group, useImage } from '@shopify/react-native-skia';
 import { useWindowDimensions } from 'react-native';
 
-import { getCardFrame } from '@/components/compose/archetypes/shared';
+import { getCardFrame, shouldRenderWatermark } from '@/components/compose/archetypes/shared';
 import { Watermark } from '@/components/compose/archetypes/Watermark';
 import { ARCHETYPES } from '@/data/archetypes';
+import { useSettingsStore } from '@/lib/store/settingsStore';
 import type { Palette, LayoutConfig } from '@/types/palette';
 
 interface Props {
@@ -19,6 +20,7 @@ export function ArchetypeCanvas({ palette, config }: Props) {
   const scale = screenW / CANVAS_W;
   const displayH = CANVAS_H * scale;
   const image = useImage(palette.imageUri);
+  const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
 
   const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
   const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
@@ -32,7 +34,7 @@ export function ArchetypeCanvas({ palette, config }: Props) {
         </Group>
 
         {overlay}
-        {config.watermarkVisible && (
+        {shouldRenderWatermark(config.watermarkVisible, subscriptionStatus) && (
           <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
         )}
       </Group>

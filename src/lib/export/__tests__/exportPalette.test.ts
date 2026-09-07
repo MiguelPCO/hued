@@ -10,6 +10,13 @@ jest.mock('expo-file-system/legacy', () => ({
   writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Avoid pulling in the real settingsStore (backed by react-native-mmkv, a
+// native module unavailable under jest) — mirrors the store's own default
+// subscriptionStatus of 'free' so behavior matches an un-mocked store.
+jest.mock('@/lib/store/settingsStore', () => ({
+  useSettingsStore: { getState: () => ({ subscriptionStatus: 'free' }) },
+}));
+
 jest.mock('@shopify/react-native-skia', () => ({
   drawAsImage: jest.fn().mockResolvedValue({ encodeToBase64: jest.fn().mockReturnValue('base64-png-data') }),
   ImageFormat: { PNG: 4 },

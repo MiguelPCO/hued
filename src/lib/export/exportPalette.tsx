@@ -2,9 +2,10 @@ import { Group, ImageFormat, Skia, drawAsImage } from '@shopify/react-native-ski
 import type { SkImage } from '@shopify/react-native-skia';
 import * as FileSystem from 'expo-file-system/legacy';
 
-import { getCardFrame } from '@/components/compose/archetypes/shared';
+import { getCardFrame, shouldRenderWatermark } from '@/components/compose/archetypes/shared';
 import { Watermark } from '@/components/compose/archetypes/Watermark';
 import { ARCHETYPES } from '@/data/archetypes';
+import { useSettingsStore } from '@/lib/store/settingsStore';
 import type { LayoutConfig, Palette } from '@/types/palette';
 
 export type ExportResolution = '1x' | '2x' | '4x';
@@ -29,6 +30,7 @@ export async function exportPalette(
   const { width, height } = RESOLUTIONS[resolution];
   const scale = width / CANVAS_W;
   const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
+  const subscriptionStatus = useSettingsStore.getState().subscriptionStatus;
 
   let image: SkImage | null = null;
   try {
@@ -47,7 +49,7 @@ export async function exportPalette(
         <Component {...archetypeProps} />
       </Group>
       {overlay}
-      {config.watermarkVisible && (
+      {shouldRenderWatermark(config.watermarkVisible, subscriptionStatus) && (
         <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
       )}
     </Group>

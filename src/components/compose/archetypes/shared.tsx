@@ -5,6 +5,7 @@ import type { SkRRect } from '@shopify/react-native-skia';
 import { Platform } from 'react-native';
 
 import { Primitive } from '@/lib/tokens';
+import type { SubscriptionStatus } from '@/lib/store/settingsStore';
 import type { LayoutConfig } from '@/types/palette';
 
 // Sentinel `cornerRadius` value for the config panel's "Píldora" (Pill)
@@ -33,6 +34,15 @@ const BLUR_RADIUS = 12;
 
 export function getContrastTextColor(hslLightness: number): string {
   return hslLightness > 0.5 ? Primitive.black : Primitive.white;
+}
+
+/**
+ * Free-tier users always see the watermark, regardless of their per-palette
+ * `watermarkVisible` config — Sprint 6's gating rule. Premium users' own
+ * preference is respected as-is.
+ */
+export function shouldRenderWatermark(watermarkVisible: boolean, status: SubscriptionStatus): boolean {
+  return watermarkVisible || status === 'free';
 }
 
 export function useArchetypeFonts(fontKey: 'sans' | 'serif' | 'mono', hexSize: number, nameSize: number) {

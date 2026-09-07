@@ -1,5 +1,5 @@
 import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
-import { wrapMetadataInBlur } from '../shared';
+import { shouldRenderWatermark, wrapMetadataInBlur } from '../shared';
 
 jest.mock('@shopify/react-native-skia', () => ({
   BackdropBlur: 'BackdropBlur',
@@ -38,5 +38,20 @@ describe('wrapMetadataInBlur', () => {
 
   it('passes null/false nodes through untouched so callers can guard rendering', () => {
     expect(wrapMetadataInBlur({ ...DEFAULT_LAYOUT_CONFIG, cardStyle: 'filled' }, null, region)).toBeNull();
+  });
+});
+
+describe('shouldRenderWatermark', () => {
+  it('shows the watermark for free-tier users even when the config has it off', () => {
+    expect(shouldRenderWatermark(false, 'free')).toBe(true);
+  });
+
+  it('respects the config for premium users', () => {
+    expect(shouldRenderWatermark(false, 'premium')).toBe(false);
+    expect(shouldRenderWatermark(true, 'premium')).toBe(true);
+  });
+
+  it('shows the watermark for free-tier users when the config already has it on', () => {
+    expect(shouldRenderWatermark(true, 'free')).toBe(true);
   });
 });
