@@ -22,6 +22,8 @@ import { exportPalette, RESOLUTIONS } from '@/lib/export/exportPalette';
 import type { ExportResolution } from '@/lib/export/exportPalette';
 import { getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
+import { canExportToday } from '@/lib/subscription/exportGate';
+import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
 import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
 import { ARCHETYPES } from '@/data/archetypes';
@@ -54,6 +56,9 @@ export default function PaletteScreen() {
   const [exportError, setExportError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<(() => void) | null>(null);
+  const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
+  const exportDailyCount = useSettingsStore((s) => s.exportDailyCount);
+  const incrementDailyExportCount = useSettingsStore((s) => s.incrementExportCount);
 
   useEffect(() => {
     if (!id) return;
@@ -109,6 +114,14 @@ export default function PaletteScreen() {
 
   async function handleExport(resolution: ExportResolution) {
     if (!palette || !config) return;
+
+    if (!canExportToday(subscriptionStatus, exportDailyCount)) {
+      trackEvent('paywall_shown', { trigger: 'export_limit' });
+      setExportSheetVisible(false);
+      router.push({ pathname: '/paywall', params: { trigger: 'export_limit' } });
+      return;
+    }
+
     setExportState('exporting');
     setExportError(null);
     try {
@@ -123,6 +136,7 @@ export default function PaletteScreen() {
       await MediaLibrary.saveToLibraryAsync(uri);
 
       await incrementExportCount(palette.id);
+      incrementDailyExportCount();
       trackEvent('palette_exported', {
         palette_id: palette.id,
         resolution,
