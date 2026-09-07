@@ -15,13 +15,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArchetypeCanvas } from '@/components/compose/ArchetypeCanvas';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { extractColors, ExtractError } from '@/lib/color/extract';
 import { exportPalette, RESOLUTIONS } from '@/lib/export/exportPalette';
 import type { ExportResolution } from '@/lib/export/exportPalette';
-import { getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout } from '@/lib/db/palettes';
+import {
+  deletePalette,
+  getPalette,
+  incrementExportCount,
+  updatePaletteColors,
+  updatePaletteLayout,
+} from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
 import { canExportToday } from '@/lib/subscription/exportGate';
 import { useSettingsStore } from '@/lib/store/settingsStore';
@@ -55,6 +62,8 @@ export default function PaletteScreen() {
   const [exportSheetVisible, setExportSheetVisible] = useState(false);
   const [exportState, setExportState] = useState<'idle' | 'exporting'>('idle');
   const [exportError, setExportError] = useState<string | null>(null);
+  const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<(() => void) | null>(null);
   const incrementDailyExportCount = useSettingsStore((s) => s.incrementExportCount);
@@ -94,6 +103,24 @@ export default function PaletteScreen() {
       return next;
     });
   }, [id]);
+
+  async function handleDelete() {
+    if (!palette) return;
+    setDeleting(true);
+    try {
+      await deletePalette(palette.id);
+      trackEvent('palette_deleted', { palette_id: palette.id, source: 'detail' });
+      setDeleteSheetVisible(false);
+      if (router.canDismiss()) {
+        router.dismissAll();
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (err) {
+      Sentry.captureException(err);
+      setDeleting(false);
+    }
+  }
 
   async function handleRetry() {
     if (!palette) return;
@@ -187,17 +214,22 @@ export default function PaletteScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text variant="body" color={Colors.accent}>← Volver</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            if (router.canDismiss()) {
-              router.dismissAll();
-            } else {
-              router.replace('/(tabs)');
-            }
-          }}
-        >
-          <Text variant="body" weight="semibold" color={Colors.accent}>Listo</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setDeleteSheetVisible(true)} hitSlop={8}>
+            <Icon name="delete" size={22} color={Colors.error} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canDismiss()) {
+                router.dismissAll();
+              } else {
+                router.replace('/(tabs)');
+              }
+            }}
+          >
+            <Text variant="body" weight="semibold" color={Colors.accent}>Listo</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -415,6 +447,24 @@ export default function PaletteScreen() {
           );
         })}
       </Sheet>
+
+      <Sheet visible={deleteSheetVisible} onClose={() => setDeleteSheetVisible(false)}>
+        <Text variant="body">¿Eliminar esta paleta? Esta acción no se puede deshacer.</Text>
+        <View style={styles.confirmRow}>
+          <TouchableOpacity
+            style={styles.sheetAction}
+            onPress={() => setDeleteSheetVisible(false)}
+            disabled={deleting}
+          >
+            <Text variant="body">Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sheetAction} onPress={handleDelete} disabled={deleting}>
+            <Text variant="body" color={Colors.error} weight="semibold">
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Sheet>
     </SafeAreaView>
   );
 }
@@ -432,6 +482,9 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderDefault,
   },
   backBtn: { alignSelf: 'flex-start' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
+  confirmRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.lg, marginTop: Spacing.md },
+  sheetAction: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
   scroll: { paddingBottom: Spacing['2xl'] },
   swatchRow: {
     flexDirection: 'row',

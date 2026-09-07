@@ -6,6 +6,7 @@ import * as Sharing from 'expo-sharing';
 import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
+import { trackEvent } from '@/lib/analytics/events';
 import { exportPalette } from '@/lib/export/exportPalette';
 import { deletePalette, duplicatePalette, toggleFavorite } from '@/lib/db/palettes';
 import { Colors, Radius, Shadow, Spacing } from '@/lib/tokens';
@@ -72,6 +73,7 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
     setBusy(true);
     try {
       await deletePalette(palette.id);
+      trackEvent('palette_deleted', { palette_id: palette.id, source: 'grid' });
       onDeleted(palette.id);
       closeSheet();
     } catch (err) {

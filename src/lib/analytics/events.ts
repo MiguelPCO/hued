@@ -25,6 +25,7 @@ type EventMap = {
   // Export
   palette_exported: { palette_id: string; resolution: '1x' | '2x' | '4x'; archetype_id: ArchetypeId };
   palette_shared: { palette_id: string; target?: string };
+  palette_deleted: { palette_id: string; source: 'grid' | 'detail' };
 
   // Monetization
   paywall_shown: { trigger: PaywallTrigger };
