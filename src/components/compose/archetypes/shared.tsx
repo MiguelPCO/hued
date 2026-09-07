@@ -36,6 +36,10 @@ export function getContrastTextColor(hslLightness: number): string {
   return hslLightness > 0.5 ? Primitive.black : Primitive.white;
 }
 
+export function formatRGB(rgb: readonly [number, number, number]): string {
+  return `RGB ${rgb[0]}, ${rgb[1]}, ${rgb[2]}`;
+}
+
 /**
  * Free-tier users always see the watermark, regardless of their per-palette
  * `watermarkVisible` config — Sprint 6's gating rule. Premium users' own
