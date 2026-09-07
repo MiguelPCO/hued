@@ -187,6 +187,17 @@ export default function PaletteScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text variant="body" color={Colors.accent}>← Volver</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            if (router.canDismiss()) {
+              router.dismissAll();
+            } else {
+              router.replace('/(tabs)');
+            }
+          }}
+        >
+          <Text variant="body" weight="semibold" color={Colors.accent}>Listo</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -412,6 +423,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgPrimary },
   loadingBox: { alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
