@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchGalleryPicker } from '@/components/capture/GalleryPicker';
 import { PaletteGrid } from '@/components/palette/PaletteGrid';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { listPalettes } from '@/lib/db/palettes';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -130,6 +131,21 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {hasPalettes && (
+        <TouchableOpacity
+          style={styles.galleryFab}
+          onPress={handleGallery}
+          activeOpacity={0.85}
+          disabled={picking}
+        >
+          {picking ? (
+            <ActivityIndicator size="small" color={Colors.textPrimary} />
+          ) : (
+            <Icon name="image" size={22} color={Colors.textPrimary} />
+          )}
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity style={styles.fab} onPress={handleCamera} activeOpacity={0.85}>
         <Text style={styles.fabPlus}>+</Text>
       </TouchableOpacity>
@@ -210,5 +226,19 @@ const styles = StyleSheet.create({
     color: Colors.accentForeground,
     fontSize: 28,
     lineHeight: 32,
+  },
+  galleryFab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.lg + 56 + Spacing.sm,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.bgElevated,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
   },
 });
