@@ -27,6 +27,18 @@ export function init(): void {
     const { status, expiresAt } = mapCustomerInfoToSubscriptionState(info);
     useSettingsStore.getState().setSubscriptionStatus(status, expiresAt ?? undefined);
   });
+
+  // One-time sync on cold start: the listener above only fires on future
+  // updates, so an offline (or otherwise slow-to-callback) cold start would
+  // run entirely on stale persisted MMKV state until it eventually does.
+  // Fire-and-forget — don't block init()'s synchronous return on this, and a
+  // failure here just leaves the existing persisted state in place.
+  Purchases.getCustomerInfo()
+    .then((info) => {
+      const { status, expiresAt } = mapCustomerInfoToSubscriptionState(info);
+      useSettingsStore.getState().setSubscriptionStatus(status, expiresAt ?? undefined);
+    })
+    .catch(() => {});
 }
 
 export async function getOfferings(): Promise<PurchasesOffering | null> {
@@ -36,9 +48,14 @@ export async function getOfferings(): Promise<PurchasesOffering | null> {
 
 export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerInfo> {
   const { customerInfo } = await Purchases.purchasePackage(pkg);
+  const { status, expiresAt } = mapCustomerInfoToSubscriptionState(customerInfo);
+  useSettingsStore.getState().setSubscriptionStatus(status, expiresAt ?? undefined);
   return customerInfo;
 }
 
 export async function restorePurchases(): Promise<CustomerInfo> {
-  return Purchases.restorePurchases();
+  const customerInfo = await Purchases.restorePurchases();
+  const { status, expiresAt } = mapCustomerInfoToSubscriptionState(customerInfo);
+  useSettingsStore.getState().setSubscriptionStatus(status, expiresAt ?? undefined);
+  return customerInfo;
 }
