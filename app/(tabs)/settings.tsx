@@ -1,20 +1,47 @@
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import { Colors, Spacing } from '@/lib/tokens';
+import { useSettingsStore } from '@/lib/store/settingsStore';
+import { Colors, Radius, Spacing } from '@/lib/tokens';
+
+function formatExpiration(expiresAt: number | null): string {
+  if (expiresAt === null) return 'De por vida';
+  return new Date(expiresAt).toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 export default function SettingsScreen() {
+  const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
+  const subscriptionExpiresAt = useSettingsStore((s) => s.subscriptionExpiresAt);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text variant="h1">Ajustes</Text>
       </View>
-      {/* Sprint 6: Subscription + preferences go here */}
-      <View style={styles.placeholder}>
-        <Text variant="body" color={Colors.textSecondary}>
-          Perfil y suscripción — Sprint 6
-        </Text>
+
+      <View style={styles.section}>
+        {subscriptionStatus === 'premium' ? (
+          <View style={styles.proCard}>
+            <Text variant="label" color={Colors.accent}>HUED PRO</Text>
+            <Text variant="body" color={Colors.textSecondary}>
+              {formatExpiration(subscriptionExpiresAt)}
+            </Text>
+          </View>
+        ) : (
+          <Button
+            label="Mejorar a Pro"
+            onPress={() => router.push({ pathname: '/paywall', params: { trigger: 'settings' } })}
+            variant="primary"
+            fullWidth
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -30,9 +57,16 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  section: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  proCard: {
+    backgroundColor: Colors.bgElevated,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    padding: Spacing.md,
+    gap: Spacing.xs,
   },
 });
