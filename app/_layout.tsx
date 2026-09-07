@@ -23,6 +23,7 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { trackEvent } from '@/lib/analytics/events';
 import { posthog } from '@/lib/analytics/posthog';
+import { init as initRevenueCat } from '@/lib/revenuecat/client';
 import { Colors } from '@/lib/tokens';
 
 Sentry.init({
@@ -30,6 +31,8 @@ Sentry.init({
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0.2,
 });
+
+initRevenueCat();
 
 SplashScreen.preventAutoHideAsync();
 
