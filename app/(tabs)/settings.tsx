@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StripeBar />
       <View style={styles.header}>
         <Text variant="h1">Ajustes</Text>
       </View>
@@ -29,8 +31,8 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         {subscriptionStatus === 'premium' ? (
           <View style={styles.proCard}>
-            <Text variant="label" color={Colors.accent}>HUED PRO</Text>
-            <Text variant="body" color={Colors.textSecondary}>
+            <Text variant="label" color={Colors.textPrimary}>HUED PRO</Text>
+            <Text variant="body" color={Colors.textPrimary}>
               {formatExpiration(subscriptionExpiresAt)}
             </Text>
           </View>
@@ -62,10 +64,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   proCard: {
-    backgroundColor: Colors.bgElevated,
+    backgroundColor: Colors.accentSubtle,
     borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.borderDefault,
     padding: Spacing.md,
     gap: Spacing.xs,
   },

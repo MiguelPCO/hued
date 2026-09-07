@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PurchasesPackage } from 'react-native-purchases';
 
 import { Button } from '@/components/ui/Button';
+import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
 import type { PaywallTrigger } from '@/lib/analytics/events';
@@ -86,6 +87,7 @@ export default function PaywallScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StripeBar />
       <View style={styles.header}>
         <Text variant="h1">Hued Pro</Text>
         <TouchableOpacity onPress={handleClose}>
@@ -104,7 +106,10 @@ export default function PaywallScreen() {
           <Text variant="small" color={Colors.error}>{error}</Text>
         ) : (
           packages.map((pkg) => (
-            <View key={pkg.identifier} style={styles.card}>
+            <View
+              key={pkg.identifier}
+              style={[styles.card, pkg.packageType === 'LIFETIME' && styles.cardLifetime]}
+            >
               <Text variant="h3">{PACKAGE_TYPE_LABELS[pkg.packageType] ?? pkg.packageType}</Text>
               <Text variant="body" color={Colors.textSecondary}>{pkg.product.priceString}</Text>
               <Button
@@ -150,6 +155,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderDefault,
     padding: Spacing.md,
     gap: Spacing.sm,
+  },
+  cardLifetime: {
+    backgroundColor: Colors.accentSubtle,
+    borderColor: Colors.accentSubtle,
   },
   errorText: { marginTop: Spacing.sm },
   restoreBtn: { alignSelf: 'center', marginTop: Spacing.lg, padding: Spacing.sm },
