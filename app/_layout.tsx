@@ -1,7 +1,8 @@
 import {
-  InstrumentSerif_400Regular,
-  InstrumentSerif_400Regular_Italic,
-} from '@expo-google-fonts/instrument-serif';
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+  Fraunces_500Medium_Italic,
+} from '@expo-google-fonts/fraunces';
 import {
   JetBrainsMono_400Regular,
 } from '@expo-google-fonts/jetbrains-mono';
@@ -42,8 +43,9 @@ export default function RootLayout() {
     'Outfit-Medium': Outfit_500Medium,
     'Outfit-SemiBold': Outfit_600SemiBold,
     'Outfit-Bold': Outfit_700Bold,
-    InstrumentSerif: InstrumentSerif_400Regular,
-    'InstrumentSerif-Italic': InstrumentSerif_400Regular_Italic,
+    Fraunces: Fraunces_600SemiBold,
+    'Fraunces-Medium': Fraunces_500Medium,
+    'Fraunces-Italic': Fraunces_500Medium_Italic,
     JetBrainsMono: JetBrainsMono_400Regular,
   });
 

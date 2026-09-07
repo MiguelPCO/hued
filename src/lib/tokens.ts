@@ -4,59 +4,60 @@
 // ─── Primitive ────────────────────────────────────────────────────────────────
 
 export const Primitive = {
-  // Neutrals (oklch chroma=0, perceptually uniform grays)
-  white: '#FFFFFF',      // oklch(1 0 0)
-  black: '#000000',      // oklch(0 0 0)
-  gray50: '#FAFAFA',     // oklch(0.985 0 0)
-  gray100: '#F5F5F5',    // oklch(0.967 0 0)
-  gray200: '#EBEBEB',    // oklch(0.922 0 0)
-  gray300: '#D4D4D4',    // oklch(0.86 0 0)
-  gray400: '#A3A3A3',    // oklch(0.72 0 0)
-  gray500: '#737373',    // oklch(0.556 0 0)
-  gray600: '#525252',    // oklch(0.44 0 0)
-  gray700: '#404040',    // oklch(0.35 0 0)
-  gray800: '#262626',    // oklch(0.269 0 0)
-  gray900: '#171717',    // oklch(0.205 0 0)
-  gray950: '#0A0A0A',    // oklch(0.145 0 0)
+  // Neutrals — warm cream scale (Modern Nostalgia / Kodak Stripe), not chroma-0 grays
+  white: '#FFFFFF',
+  black: '#000000',
+  cream50: '#FFFDF8',    // near-white, warmest tint
+  cream100: '#FFF6E8',   // elevated surfaces (cards, sheets)
+  cream200: '#FDDCA9',   // base background — reference palette
+  cream300: '#F0DDBE',   // borders/dividers on cream
+  cream400: '#D8B48A',   // muted text on dark surfaces
+  brown500: '#8A6F5C',   // tertiary text, tab bar inactive
+  brown700: '#6B4E3D',   // secondary text
+  brown800: '#562717',   // primary ink — reference palette
+  brown900: '#3A1A0F',   // inverse background (dark surfaces)
+  brown950: '#241109',   // deepest surface (bottom sheets on dark)
 
-  // Accent — editorial deep ink blue
-  accent100: '#E8ECF0',  // oklch(0.94 0.02 252)
-  accent200: '#C5D0DC',  // oklch(0.85 0.04 252)
-  accent500: '#4A6FA5',  // oklch(0.52 0.09 252)
-  accent700: '#2A4A7F',  // oklch(0.38 0.10 252)
-  accent900: '#1A2E50',  // oklch(0.25 0.07 252)
+  // Accent — Kodak Stripe trio, reference palette
+  red500: '#C21717',     // primary CTA
+  orange500: '#E76219',  // secondary accent, icons, large text only (AA fails <18px)
+  amber400: '#FEA712',   // highlight chips/badges (pair with brown800 text)
 
-  // Status
-  red500: '#EF4444',
-  green500: '#22C55E',
+  // Status (kept distinct from brand accents to avoid semantic collision)
+  error500: '#DC2626',
+  success500: '#16A34A',
 } as const;
 
 // ─── Semantic ─────────────────────────────────────────────────────────────────
 
 export const Colors = {
-  bgPrimary: Primitive.gray50,
-  bgSecondary: Primitive.gray100,
-  bgElevated: Primitive.white,
-  bgInverse: Primitive.gray950,
+  bgPrimary: Primitive.cream200,
+  bgSecondary: Primitive.cream100,
+  bgElevated: Primitive.cream50,
+  bgInverse: Primitive.brown900,
 
-  textPrimary: Primitive.gray950,
-  textSecondary: Primitive.gray600,
-  textTertiary: Primitive.gray400,
-  textInverse: Primitive.white,
-  textPlaceholder: Primitive.gray400,
+  textPrimary: Primitive.brown800,     // 9.42:1 on bgPrimary (AAA)
+  textSecondary: Primitive.brown700,
+  textTertiary: Primitive.brown500,
+  textInverse: Primitive.cream200,
+  textPlaceholder: Primitive.brown500,
 
-  borderDefault: Primitive.gray200,
-  borderStrong: Primitive.gray300,
+  borderDefault: Primitive.cream300,
+  borderStrong: Primitive.cream400,
 
-  accent: Primitive.accent700,
+  accent: Primitive.red500,            // 6.12:1 white-on-accent (AA)
   accentForeground: Primitive.white,
-  accentSubtle: Primitive.accent100,
+  accentSubtle: Primitive.amber400,    // pair with textPrimary only — 6.34:1
 
-  error: Primitive.red500,
+  // orange500 is decorative/icon accent only: 3.41:1 w/white, 3.63:1 w/brown800 —
+  // fails AA for text under ~18.7px bold / 24px regular, fine for large type or fills
+  accentSecondary: Primitive.orange500,
+
+  error: Primitive.error500,
   errorBg: '#FEF2F2',
-  success: Primitive.green500,
+  success: Primitive.success500,
 
-  // Palette canvas background — pure white so photos pop
+  // Palette canvas background — pure white so photos pop (unchanged, non-negotiable)
   canvasBg: Primitive.white,
 } as const;
 
@@ -78,7 +79,8 @@ export const Spacing = {
 
 export const FontFamily = {
   sans: 'Outfit',
-  display: 'InstrumentSerif',
+  display: 'Fraunces',
+  displayItalic: 'Fraunces-Italic',
   mono: 'JetBrainsMono',
 } as const;
 
@@ -122,21 +124,21 @@ export const Radius = {
 
 export const Shadow = {
   sm: {
-    shadowColor: Primitive.black,
+    shadowColor: Primitive.brown800,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
   md: {
-    shadowColor: Primitive.black,
+    shadowColor: Primitive.brown800,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
   },
   lg: {
-    shadowColor: Primitive.black,
+    shadowColor: Primitive.brown800,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
