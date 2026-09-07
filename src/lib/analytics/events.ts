@@ -29,7 +29,7 @@ type EventMap = {
   // Monetization
   paywall_shown: { trigger: PaywallTrigger };
   paywall_dismissed: { trigger: PaywallTrigger };
-  subscription_purchased: { trigger: PaywallTrigger; plan?: 'monthly' | 'annual' };
+  subscription_purchased: { trigger: PaywallTrigger; plan?: 'monthly' | 'annual' | 'lifetime' };
   subscription_restored: Record<string, never>;
 };
 
