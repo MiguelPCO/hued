@@ -11,9 +11,23 @@ import type { Palette } from '@/types/palette';
 
 interface Props {
   onPressPalette: (id: string) => void;
-  filter: 'all' | 'favorites';
+  filter: 'all' | 'favorites' | string;
   query: string;
   onPalettesChange?: (count: number) => void;
+}
+
+export function filterPalettes(
+  palettes: Palette[],
+  filter: 'all' | 'favorites' | string,
+  query: string
+): Palette[] {
+  return palettes
+    .filter((p) => {
+      if (filter === 'all') return true;
+      if (filter === 'favorites') return p.isFavorite;
+      return p.collectionId === filter;
+    })
+    .filter((p) => paletteMatchesQuery(p.colors.map((c) => c.name), query));
 }
 
 function SkeletonCard() {
@@ -55,11 +69,10 @@ export function PaletteGrid({ onPressPalette, filter, query, onPalettesChange }:
     });
   }, [onPalettesChange]);
 
-  const visible = useMemo(() => {
-    return palettes
-      .filter((p) => filter === 'all' || p.isFavorite)
-      .filter((p) => paletteMatchesQuery(p.colors.map((c) => c.name), query));
-  }, [palettes, filter, query]);
+  const visible = useMemo(
+    () => filterPalettes(palettes, filter, query),
+    [palettes, filter, query]
+  );
 
   if (loading) {
     return (
