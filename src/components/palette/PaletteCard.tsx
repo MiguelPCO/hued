@@ -20,9 +20,17 @@ interface Props {
   onToggleFavorite: (id: string) => void;
   onDuplicated: (palette: Palette) => void;
   onDeleted: (id: string) => void;
+  onCollectionChanged: (id: string, collectionId: string | null) => void;
 }
 
-export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, onDeleted }: Props) {
+export function PaletteCard({
+  palette,
+  onPress,
+  onToggleFavorite,
+  onDuplicated,
+  onDeleted,
+  onCollectionChanged,
+}: Props) {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -61,6 +69,7 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
     try {
       const list = await listCollections();
       setCollections(list);
+      setSheetVisible(false);
       setCollectionSheetVisible(true);
     } catch (err) {
       Sentry.captureException(err);
@@ -71,6 +80,7 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
     setBusy(true);
     try {
       await setPaletteCollection(palette.id, collectionId);
+      onCollectionChanged(palette.id, collectionId);
       setCollectionSheetVisible(false);
       closeSheet();
     } catch (err) {

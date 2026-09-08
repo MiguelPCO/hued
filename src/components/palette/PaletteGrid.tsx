@@ -69,6 +69,10 @@ export function PaletteGrid({ onPressPalette, filter, query, onPalettesChange }:
     });
   }, [onPalettesChange]);
 
+  const handleCollectionChanged = useCallback((id: string, collectionId: string | null) => {
+    setPalettes((prev) => prev.map((p) => (p.id === id ? { ...p, collectionId } : p)));
+  }, []);
+
   const visible = useMemo(
     () => filterPalettes(palettes, filter, query),
     [palettes, filter, query]
@@ -104,6 +108,7 @@ export function PaletteGrid({ onPressPalette, filter, query, onPalettesChange }:
           onToggleFavorite={handleToggleFavorite}
           onDuplicated={handleDuplicated}
           onDeleted={handleDeleted}
+          onCollectionChanged={handleCollectionChanged}
         />
       )}
     />
