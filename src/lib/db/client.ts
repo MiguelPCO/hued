@@ -19,12 +19,19 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   for (const migration of MIGRATIONS) {
     if (appliedSet.has(migration.name)) continue;
 
-    await db.execAsync(migration.sql);
-    await db.runAsync(
-      'INSERT INTO migrations (name, applied_at) VALUES (?, ?)',
-      migration.name,
-      Date.now()
-    );
+    // Run the migration's SQL and its bookkeeping insert in a single
+    // transaction so a crash mid-migration leaves it fully unapplied
+    // (safe to retry) instead of partially applied (e.g. an ALTER TABLE
+    // that succeeded but was never recorded, which would throw
+    // "duplicate column name" and brick getDb() on every future launch).
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.execAsync(migration.sql);
+      await txn.runAsync(
+        'INSERT INTO migrations (name, applied_at) VALUES (?, ?)',
+        migration.name,
+        Date.now()
+      );
+    });
   }
 }
 
