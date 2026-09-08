@@ -7,6 +7,13 @@ export interface ExtractedColor {
   weight: number;
 }
 
+export interface Collection {
+  id: string;
+  name: string;
+  createdAt: number;
+  position: number;
+}
+
 export type ArchetypeId = 'strip' | 'editorial' | 'grid' | 'banner' | 'side';
 
 export type CardStyle = 'filled' | 'outlined' | 'blur';
@@ -37,6 +44,7 @@ export interface Palette {
   thumbnailUri: string;
   colors: ExtractedColor[];
   layoutConfig: LayoutConfig;
+  collectionId: string | null;
   meta: PaletteMeta;
   createdAt: number;
   updatedAt: number;

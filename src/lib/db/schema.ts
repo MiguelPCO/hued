@@ -32,4 +32,21 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    name: '002_create_collections',
+    sql: `
+      CREATE TABLE IF NOT EXISTS collections (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0
+      );
+
+      ALTER TABLE palettes ADD COLUMN collection_id TEXT NULL
+        REFERENCES collections(id);
+
+      CREATE INDEX IF NOT EXISTS idx_palettes_collection
+        ON palettes(collection_id);
+    `,
+  },
 ];
