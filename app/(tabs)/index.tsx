@@ -33,7 +33,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       listPalettes().then((p) => setHasPalettes(p.length > 0));
-      listCollections().then(setCollections);
+      listCollections().then(setCollections).catch(Sentry.captureException);
     }, [])
   );
 
