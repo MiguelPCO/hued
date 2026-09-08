@@ -43,6 +43,7 @@ const palette: Palette = {
   thumbnailUri: 'file:///documents/palettes/p1/thumb.jpg',
   colors: [],
   layoutConfig: DEFAULT_LAYOUT_CONFIG,
+  collectionId: null,
   meta: { capturedAt: 1000, source: 'camera', aspectRatio: 'original' },
   createdAt: 1000,
   updatedAt: 1000,
