@@ -19,6 +19,7 @@ export type IconName =
   | 'chevron-left'
   | 'arrow-back'
   | 'image'
+  | 'folder'
   | 'palette'
   | 'star'
   | 'star-border'

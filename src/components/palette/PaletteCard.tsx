@@ -8,10 +8,11 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
 import { exportPalette } from '@/lib/export/exportPalette';
-import { deletePalette, duplicatePalette, toggleFavorite } from '@/lib/db/palettes';
+import { listCollections } from '@/lib/db/collections';
+import { deletePalette, duplicatePalette, setPaletteCollection, toggleFavorite } from '@/lib/db/palettes';
 import { Colors, Radius, Shadow, Spacing } from '@/lib/tokens';
 import { formatDateEs } from '@/lib/utils/dateUtils';
-import type { Palette } from '@/types/palette';
+import type { Collection, Palette } from '@/types/palette';
 
 interface Props {
   palette: Palette;
@@ -25,6 +26,8 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [collectionSheetVisible, setCollectionSheetVisible] = useState(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
 
   function closeSheet() {
     setSheetVisible(false);
@@ -46,6 +49,29 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
     try {
       const duplicate = await duplicatePalette(palette.id);
       onDuplicated(duplicate);
+      closeSheet();
+    } catch (err) {
+      Sentry.captureException(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openCollectionSheet() {
+    try {
+      const list = await listCollections();
+      setCollections(list);
+      setCollectionSheetVisible(true);
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }
+
+  async function handleAssignCollection(collectionId: string | null) {
+    setBusy(true);
+    try {
+      await setPaletteCollection(palette.id, collectionId);
+      setCollectionSheetVisible(false);
       closeSheet();
     } catch (err) {
       Sentry.captureException(err);
@@ -148,6 +174,10 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
               <Icon name="share" size={20} />
               <Text variant="body">Compartir</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.sheetRow} onPress={openCollectionSheet} disabled={busy}>
+              <Icon name="folder" size={20} />
+              <Text variant="body">Mover a carpeta</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.sheetRow}
               onPress={() => setConfirmingDelete(true)}
@@ -158,6 +188,28 @@ export function PaletteCard({ palette, onPress, onToggleFavorite, onDuplicated, 
             </TouchableOpacity>
           </View>
         )}
+      </Sheet>
+
+      <Sheet visible={collectionSheetVisible} onClose={() => setCollectionSheetVisible(false)}>
+        <TouchableOpacity
+          style={styles.sheetRow}
+          onPress={() => handleAssignCollection(null)}
+          disabled={busy}
+        >
+          <Text variant="body">Sin carpeta</Text>
+        </TouchableOpacity>
+        {collections.map((c) => (
+          <TouchableOpacity
+            key={c.id}
+            style={styles.sheetRow}
+            onPress={() => handleAssignCollection(c.id)}
+            disabled={busy}
+          >
+            <Text variant="body" weight={palette.collectionId === c.id ? 'semibold' : 'regular'}>
+              {c.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </Sheet>
     </>
   );
