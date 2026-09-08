@@ -23,6 +23,8 @@ interface SettingsState {
   installDate: number;
   exportDailyCount: number;
   exportDailyResetDate: string;
+  profileName: string | null;
+  profilePhotoUri: string | null;
 }
 
 interface SettingsActions {
@@ -32,6 +34,8 @@ interface SettingsActions {
   setSubscriptionStatus: (status: SubscriptionStatus, expiresAt?: number) => void;
   incrementExportCount: () => void;
   resetExportCountIfNewDay: () => void;
+  setProfileName: (name: string | null) => void;
+  setProfilePhotoUri: (uri: string | null) => void;
 }
 
 const todayString = () => new Date().toISOString().slice(0, 10);
@@ -47,6 +51,8 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       installDate: Date.now(),
       exportDailyCount: 0,
       exportDailyResetDate: todayString(),
+      profileName: null,
+      profilePhotoUri: null,
 
       completeOnboarding: () => set({ onboardingCompleted: true }),
 
@@ -68,6 +74,10 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           set({ exportDailyCount: 0, exportDailyResetDate: today });
         }
       },
+
+      setProfileName: (name) => set({ profileName: name }),
+
+      setProfilePhotoUri: (uri) => set({ profilePhotoUri: uri }),
     }),
     {
       name: 'settings',

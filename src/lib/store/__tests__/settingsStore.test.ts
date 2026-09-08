@@ -71,3 +71,25 @@ describe('incrementExportCount', () => {
     expect(useSettingsStore.getState().exportDailyCount).toBe(2);
   });
 });
+
+describe('profile', () => {
+  afterEach(() => {
+    useSettingsStore.setState({ profileName: null, profilePhotoUri: null });
+  });
+
+  it('setProfileName stores a trimmed-by-caller name as-is', () => {
+    useSettingsStore.getState().setProfileName('Miguel');
+    expect(useSettingsStore.getState().profileName).toBe('Miguel');
+  });
+
+  it('setProfileName(null) clears the name', () => {
+    useSettingsStore.setState({ profileName: 'Miguel' });
+    useSettingsStore.getState().setProfileName(null);
+    expect(useSettingsStore.getState().profileName).toBeNull();
+  });
+
+  it('setProfilePhotoUri stores the given uri', () => {
+    useSettingsStore.getState().setProfilePhotoUri('file:///profile/avatar.jpg?t=123');
+    expect(useSettingsStore.getState().profilePhotoUri).toBe('file:///profile/avatar.jpg?t=123');
+  });
+});
