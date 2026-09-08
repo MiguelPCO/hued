@@ -1,18 +1,22 @@
+import * as Sentry from '@sentry/react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { launchGalleryPicker } from '@/components/capture/GalleryPicker';
 import { PaletteGrid } from '@/components/palette/PaletteGrid';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Sheet } from '@/components/ui/Sheet';
 import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
+import { createCollection, deleteCollection, listCollections, renameCollection } from '@/lib/db/collections';
 import { listPalettes } from '@/lib/db/palettes';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
+import type { Collection } from '@/types/palette';
 
-type Filter = 'all' | 'favorites';
+type Filter = 'all' | 'favorites' | string;
 
 export default function HomeScreen() {
   const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
@@ -20,10 +24,16 @@ export default function HomeScreen() {
   const [galleryDenied, setGalleryDenied] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [createSheetVisible, setCreateSheetVisible] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [manageSheetCollection, setManageSheetCollection] = useState<Collection | null>(null);
+  const [renaming, setRenaming] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       listPalettes().then((p) => setHasPalettes(p.length > 0));
+      listCollections().then(setCollections);
     }, [])
   );
 
@@ -53,6 +63,58 @@ export default function HomeScreen() {
     router.push('/(tabs)/capture');
   }
 
+  function openCreateSheet() {
+    setNameDraft('');
+    setCreateSheetVisible(true);
+  }
+
+  async function handleCreateCollection() {
+    const trimmed = nameDraft.trim();
+    if (trimmed.length === 0) return;
+    try {
+      const created = await createCollection(trimmed);
+      setCollections((prev) => [...prev, created]);
+      setCreateSheetVisible(false);
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }
+
+  function openManageSheet(collection: Collection) {
+    setNameDraft(collection.name);
+    setManageSheetCollection(collection);
+    setRenaming(false);
+  }
+
+  async function handleRenameCollection() {
+    if (!manageSheetCollection) return;
+    const trimmed = nameDraft.trim();
+    if (trimmed.length === 0) return;
+    try {
+      await renameCollection(manageSheetCollection.id, trimmed);
+      setCollections((prev) =>
+        prev.map((c) => (c.id === manageSheetCollection.id ? { ...c, name: trimmed } : c))
+      );
+      setManageSheetCollection(null);
+      setRenaming(false);
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }
+
+  async function handleDeleteCollection() {
+    if (!manageSheetCollection) return;
+    const id = manageSheetCollection.id;
+    try {
+      await deleteCollection(id);
+      setCollections((prev) => prev.filter((c) => c.id !== id));
+      if (filter === id) setFilter('all');
+      setManageSheetCollection(null);
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }
+
   if (hasPalettes === null) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingBox]}>
@@ -79,23 +141,44 @@ export default function HomeScreen() {
               placeholderTextColor={Colors.textPlaceholder}
               style={styles.searchInput}
             />
-            <View style={styles.pillRow}>
-              {(['all', 'favorites'] as const).map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  style={[styles.pill, filter === f && styles.pillActive]}
-                  onPress={() => setFilter(f)}
-                >
-                  <Text
-                    variant="small"
-                    weight={filter === f ? 'semibold' : 'regular'}
-                    color={filter === f ? Colors.accentForeground : Colors.textPrimary}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+              <View style={styles.pillRow}>
+                {(['all', 'favorites'] as const).map((f) => (
+                  <TouchableOpacity
+                    key={f}
+                    style={[styles.pill, filter === f && styles.pillActive]}
+                    onPress={() => setFilter(f)}
                   >
-                    {f === 'all' ? 'Todas' : 'Favoritas'}
-                  </Text>
+                    <Text
+                      variant="small"
+                      weight={filter === f ? 'semibold' : 'regular'}
+                      color={filter === f ? Colors.accentForeground : Colors.textPrimary}
+                    >
+                      {f === 'all' ? 'Todas' : 'Favoritas'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {collections.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[styles.pill, filter === c.id && styles.pillActive]}
+                    onPress={() => setFilter(c.id)}
+                    onLongPress={() => openManageSheet(c)}
+                  >
+                    <Text
+                      variant="small"
+                      weight={filter === c.id ? 'semibold' : 'regular'}
+                      color={filter === c.id ? Colors.accentForeground : Colors.textPrimary}
+                    >
+                      {c.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.pill} onPress={openCreateSheet}>
+                  <Text variant="small" color={Colors.textPrimary}>+ Nueva</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+            </ScrollView>
           </View>
           <PaletteGrid
             onPressPalette={handlePressPalette}
@@ -151,6 +234,60 @@ export default function HomeScreen() {
       <TouchableOpacity style={styles.fab} onPress={handleCamera} activeOpacity={0.85}>
         <Text style={styles.fabPlus}>+</Text>
       </TouchableOpacity>
+
+      <Sheet visible={createSheetVisible} onClose={() => setCreateSheetVisible(false)}>
+        <Text variant="label" color={Colors.textSecondary} style={styles.sheetLabel}>NUEVA CARPETA</Text>
+        <TextInput
+          value={nameDraft}
+          onChangeText={setNameDraft}
+          placeholder="Nombre de la carpeta"
+          placeholderTextColor={Colors.textPlaceholder}
+          style={styles.sheetInput}
+          autoFocus
+          maxLength={40}
+        />
+        <Button
+          label="Crear"
+          onPress={handleCreateCollection}
+          variant="primary"
+          fullWidth
+          disabled={nameDraft.trim().length === 0}
+        />
+      </Sheet>
+
+      <Sheet visible={manageSheetCollection !== null} onClose={() => setManageSheetCollection(null)}>
+        {renaming ? (
+          <>
+            <Text variant="label" color={Colors.textSecondary} style={styles.sheetLabel}>
+              RENOMBRAR CARPETA
+            </Text>
+            <TextInput
+              value={nameDraft}
+              onChangeText={setNameDraft}
+              placeholderTextColor={Colors.textPlaceholder}
+              style={styles.sheetInput}
+              autoFocus
+              maxLength={40}
+            />
+            <Button
+              label="Guardar"
+              onPress={handleRenameCollection}
+              variant="primary"
+              fullWidth
+              disabled={nameDraft.trim().length === 0}
+            />
+          </>
+        ) : (
+          <>
+            <TouchableOpacity style={styles.sheetRow} onPress={() => setRenaming(true)}>
+              <Text variant="body">Renombrar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sheetRow} onPress={handleDeleteCollection}>
+              <Text variant="body" color={Colors.error}>Eliminar</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </Sheet>
     </SafeAreaView>
   );
 }
@@ -178,6 +315,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     color: Colors.textPrimary,
   },
+  pillScroll: { flexGrow: 0 },
   pillRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -242,5 +380,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
+  },
+  sheetLabel: { marginBottom: Spacing.sm },
+  sheetInput: {
+    height: 48,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    backgroundColor: Colors.bgElevated,
+    paddingHorizontal: Spacing.md,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  sheetRow: {
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderDefault,
   },
 });
