@@ -29,10 +29,11 @@ export default function HomeScreen() {
   const [nameDraft, setNameDraft] = useState('');
   const [manageSheetCollection, setManageSheetCollection] = useState<Collection | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [confirmingDeleteCollection, setConfirmingDeleteCollection] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      listPalettes().then((p) => setHasPalettes(p.length > 0));
+      listPalettes().then((p) => setHasPalettes(p.length > 0)).catch(Sentry.captureException);
       listCollections().then(setCollections).catch(Sentry.captureException);
     }, [])
   );
@@ -84,6 +85,7 @@ export default function HomeScreen() {
     setNameDraft(collection.name);
     setManageSheetCollection(collection);
     setRenaming(false);
+    setConfirmingDeleteCollection(false);
   }
 
   async function handleRenameCollection() {
@@ -277,12 +279,32 @@ export default function HomeScreen() {
               disabled={nameDraft.trim().length === 0}
             />
           </>
+        ) : confirmingDeleteCollection ? (
+          <View>
+            <Text variant="body" style={styles.sheetText}>
+              {`¿Eliminar "${manageSheetCollection?.name}"? Las paletas dentro quedarán sin carpeta.`}
+            </Text>
+            <View style={styles.confirmRow}>
+              <TouchableOpacity
+                style={styles.sheetAction}
+                onPress={() => setConfirmingDeleteCollection(false)}
+              >
+                <Text variant="body">Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetAction} onPress={handleDeleteCollection}>
+                <Text variant="body" color={Colors.error} weight="semibold">Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
           <>
             <TouchableOpacity style={styles.sheetRow} onPress={() => setRenaming(true)}>
               <Text variant="body">Renombrar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sheetRow} onPress={handleDeleteCollection}>
+            <TouchableOpacity
+              style={styles.sheetRow}
+              onPress={() => setConfirmingDeleteCollection(true)}
+            >
               <Text variant="body" color={Colors.error}>Eliminar</Text>
             </TouchableOpacity>
           </>
@@ -396,5 +418,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderDefault,
+  },
+  sheetText: {
+    marginBottom: Spacing.md,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.lg,
+  },
+  sheetAction: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
 });
