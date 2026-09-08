@@ -1,6 +1,6 @@
 import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
 import type { ExtractedColor, LayoutConfig } from '@/types/palette';
-import { updatePaletteColors, updatePaletteLayout } from '../palettes';
+import { updatePaletteColors, updatePaletteLayout, setPaletteCollection } from '../palettes';
 import { getDb } from '../client';
 
 jest.mock('expo-file-system/legacy', () => ({
@@ -56,6 +56,28 @@ describe('updatePaletteLayout', () => {
       JSON.stringify(config),
       expect.any(Number),
       'palette-2'
+    );
+  });
+});
+
+describe('setPaletteCollection', () => {
+  it('runs UPDATE with the given collection id', async () => {
+    await setPaletteCollection('palette-3', 'col-1');
+    expect(mockDb.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE palettes SET collection_id'),
+      'col-1',
+      expect.any(Number),
+      'palette-3'
+    );
+  });
+
+  it('runs UPDATE with null to unassign', async () => {
+    await setPaletteCollection('palette-3', null);
+    expect(mockDb.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE palettes SET collection_id'),
+      null,
+      expect.any(Number),
+      'palette-3'
     );
   });
 });

@@ -59,6 +59,7 @@ describe('savePalette', () => {
       expect.stringContaining('thumb.jpg'),
       '[]',                          // colors serialized
       expect.any(String),            // layoutConfig JSON
+      null,                          // collectionId — unassigned on create
       expect.any(String),            // meta JSON
       expect.any(Number),            // createdAt
       expect.any(Number),            // updatedAt
@@ -99,6 +100,7 @@ describe('getPalette', () => {
       thumbnail_uri: 'file:///palettes/01HX/thumb.jpg',
       colors: '[]',
       layout_config: JSON.stringify(DEFAULT_LAYOUT_CONFIG),
+      collection_id: null,
       meta: JSON.stringify({ capturedAt: 1000, source: 'camera', aspectRatio: 'original' }),
       created_at: 1000,
       updated_at: 1000,
@@ -110,6 +112,7 @@ describe('getPalette', () => {
     expect(palette?.isFavorite).toBe(false);
     expect(palette?.colors).toEqual([]);
     expect(palette?.meta.source).toBe('camera');
+    expect(palette?.collectionId).toBeNull();
   });
 });
 

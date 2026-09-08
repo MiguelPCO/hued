@@ -21,6 +21,7 @@ interface PaletteRow {
   thumbnail_uri: string;
   colors: string;
   layout_config: string;
+  collection_id: string | null;
   meta: string;
   created_at: number;
   updated_at: number;
@@ -35,6 +36,7 @@ function rowToPalette(row: PaletteRow): Palette {
     thumbnailUri: row.thumbnail_uri,
     colors: JSON.parse(row.colors) as ExtractedColor[],
     layoutConfig: JSON.parse(row.layout_config) as LayoutConfig,
+    collectionId: row.collection_id,
     meta: JSON.parse(row.meta) as PaletteMeta,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -47,14 +49,15 @@ async function insertPaletteRow(palette: Palette): Promise<void> {
   const db = await getDb();
   await db.runAsync(
     `INSERT INTO palettes
-       (id, image_uri, thumbnail_uri, colors, layout_config, meta,
+       (id, image_uri, thumbnail_uri, colors, layout_config, collection_id, meta,
         created_at, updated_at, is_favorite, export_count)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     palette.id,
     palette.imageUri,
     palette.thumbnailUri,
     JSON.stringify(palette.colors),
     JSON.stringify(palette.layoutConfig),
+    palette.collectionId,
     JSON.stringify(palette.meta),
     palette.createdAt,
     palette.updatedAt,
@@ -86,6 +89,7 @@ export async function savePalette(params: SavePaletteParams): Promise<Palette> {
       thumbnailUri: `${dir}thumb.jpg`,
       colors: params.colors,
       layoutConfig: params.layoutConfig,
+      collectionId: null,
       meta: params.meta,
       createdAt: now,
       updatedAt: now,
@@ -130,6 +134,16 @@ export async function updatePaletteLayout(id: string, config: LayoutConfig): Pro
   await db.runAsync(
     'UPDATE palettes SET layout_config = ?, updated_at = ? WHERE id = ?',
     JSON.stringify(config),
+    Date.now(),
+    id
+  );
+}
+
+export async function setPaletteCollection(id: string, collectionId: string | null): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE palettes SET collection_id = ?, updated_at = ? WHERE id = ?',
+    collectionId,
     Date.now(),
     id
   );
@@ -183,6 +197,7 @@ export async function duplicatePalette(id: string): Promise<Palette> {
       thumbnailUri: `${dir}thumb.jpg`,
       colors: source.colors,
       layoutConfig: source.layoutConfig,
+      collectionId: source.collectionId,
       meta: source.meta,
       createdAt: now,
       updatedAt: now,

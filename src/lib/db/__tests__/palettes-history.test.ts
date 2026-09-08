@@ -32,6 +32,7 @@ const sourceRow = {
   thumbnail_uri: 'file:///documents/palettes/01HX1234567890ABCDEFGHIJKL/thumb.jpg',
   colors: '[]',
   layout_config: JSON.stringify(DEFAULT_LAYOUT_CONFIG),
+  collection_id: 'col-1',
   meta: JSON.stringify({ capturedAt: 1000, source: 'camera', aspectRatio: 'original' }),
   created_at: 1000,
   updated_at: 1000,
@@ -121,12 +122,19 @@ describe('duplicatePalette', () => {
       expect.stringContaining('thumb.jpg'),
       '[]',
       JSON.stringify(DEFAULT_LAYOUT_CONFIG),
+      sourceRow.collection_id,
       sourceRow.meta,
       expect.any(Number),
       expect.any(Number),
       0,
       0
     );
+  });
+
+  it('inherits the source palette collection', async () => {
+    mockDb.getFirstAsync.mockResolvedValue(sourceRow);
+    const duplicate = await duplicatePalette(sourceRow.id);
+    expect(duplicate.collectionId).toBe('col-1');
   });
 
   it('throws if the source palette does not exist', async () => {
