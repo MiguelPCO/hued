@@ -56,6 +56,7 @@ export async function exportPalette(
   );
 
   const rendered = await drawAsImage(element, { width, height });
+  if (!rendered) throw new Error('Skia drawAsImage returned null');
   const base64 = rendered.encodeToBase64(ImageFormat.PNG, 100);
 
   const cacheDir = FileSystem.cacheDirectory;

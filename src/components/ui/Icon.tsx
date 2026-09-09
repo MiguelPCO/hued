@@ -1,5 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
+import { ColorValue } from 'react-native';
 
 import { Colors } from '@/lib/tokens';
 
@@ -31,7 +32,7 @@ export type IconName =
 interface Props {
   name: IconName;
   size?: number;
-  color?: string;
+  color?: ColorValue;
 }
 
 export function Icon({ name, size = 24, color = Colors.textPrimary }: Props) {

@@ -61,7 +61,7 @@ export function CameraView({ onCapture, onCancel }: Props) {
     trackEvent('capture_started', { source: 'camera' });
     const start = Date.now();
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 1, exif: false });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.3, exif: false });
       trackEvent('capture_completed', { source: 'camera', duration_ms: Date.now() - start });
       onCapture(photo.uri);
     } catch (err) {
@@ -72,8 +72,8 @@ export function CameraView({ onCapture, onCancel }: Props) {
     }
   }
 
-  const FLASH_CYCLE: Record<FlashMode, FlashMode> = { auto: 'on', on: 'off', off: 'auto' };
-  const FLASH_LABEL: Record<FlashMode, string> = { auto: 'A', on: 'On', off: 'Off' };
+  const FLASH_CYCLE: Record<FlashMode, FlashMode> = { auto: 'on', on: 'off', off: 'auto', screen: 'auto' };
+  const FLASH_LABEL: Record<FlashMode, string> = { auto: 'A', on: 'On', off: 'Off', screen: 'Screen' };
 
   return (
     <View style={styles.container}>
