@@ -13,6 +13,7 @@ import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { createCollection, deleteCollection, listCollections, renameCollection } from '@/lib/db/collections';
 import { listPalettes } from '@/lib/db/palettes';
+import { processCapture } from '@/lib/capture/processCapture';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 import type { Collection } from '@/types/palette';
 
@@ -51,10 +52,13 @@ export default function HomeScreen() {
     try {
       const result = await launchGalleryPicker();
       if (result.type === 'picked') {
-        router.push({ pathname: '/crop', params: { uri: result.uri, source: 'gallery' } });
+        const palette = await processCapture(result.uri, 'gallery');
+        router.push({ pathname: '/palette/[id]', params: { id: palette.id } });
       } else if (result.type === 'denied') {
         setGalleryDenied(true);
       }
+    } catch (err) {
+      Sentry.captureException(err);
     } finally {
       setPicking(false);
     }

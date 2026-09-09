@@ -1,10 +1,18 @@
+import * as Sentry from '@sentry/react-native';
 import { router } from 'expo-router';
 
 import { CameraView } from '@/components/capture/CameraView';
+import { processCapture } from '@/lib/capture/processCapture';
 
 export default function CaptureScreen() {
-  function handleCapture(uri: string) {
-    router.push({ pathname: '/crop', params: { uri, source: 'camera' } });
+  async function handleCapture(uri: string) {
+    try {
+      const palette = await processCapture(uri, 'camera');
+      router.replace({ pathname: '/palette/[id]', params: { id: palette.id } });
+    } catch (err) {
+      Sentry.captureException(err);
+      router.replace('/(tabs)');
+    }
   }
 
   function handleCancel() {
