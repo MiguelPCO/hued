@@ -1,3 +1,4 @@
+// app/palette/[id].tsx
 import * as Sentry from '@sentry/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as MediaLibrary from 'expo-media-library';
@@ -5,15 +6,14 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
-  Switch,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArchetypeCanvas } from '@/components/compose/ArchetypeCanvas';
+import { EditTabs } from '@/components/palette/EditTabs';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
@@ -33,24 +33,12 @@ import { trackEvent } from '@/lib/analytics/events';
 import { canExportToday } from '@/lib/subscription/exportGate';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
-import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
-import { ARCHETYPES } from '@/data/archetypes';
-import type { LayoutConfig, Palette } from '@/types/palette';
+import type { ExtractedColor, LayoutConfig, Palette } from '@/types/palette';
 
 const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
   { value: '1x', label: '1×' },
   { value: '2x', label: '2×' },
   { value: '4x', label: '4×' },
-];
-
-// "Difuminado" (blur) is filtered out per-archetype below (see
-// ArchetypeDefinition.supportsBlur in src/data/archetypes.ts) — it's a
-// visual no-op on strip/grid/side, where the blurred backdrop is just the
-// same flat swatch color already drawn underneath it.
-const CARD_STYLE_OPTIONS = [
-  { label: 'Sólido', key: 'filled' as const },
-  { label: 'Contorno', key: 'outlined' as const },
-  { label: 'Difuminado', key: 'blur' as const },
 ];
 
 export default function PaletteScreen() {
@@ -59,6 +47,7 @@ export default function PaletteScreen() {
   const [config, setConfig] = useState<LayoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
+  const [canvasMaxHeight, setCanvasMaxHeight] = useState(0);
   const [exportSheetVisible, setExportSheetVisible] = useState(false);
   const [exportState, setExportState] = useState<'idle' | 'exporting'>('idle');
   const [exportError, setExportError] = useState<string | null>(null);
@@ -68,20 +57,40 @@ export default function PaletteScreen() {
   const pendingFlushRef = useRef<(() => void) | null>(null);
   const incrementDailyExportCount = useSettingsStore((s) => s.incrementExportCount);
 
+  const attemptExtraction = useCallback(async (target: Palette) => {
+    setExtracting(true);
+    try {
+      const colors = await extractColors(target.thumbnailUri);
+      await updatePaletteColors(target.id, colors);
+      setPalette((p) => (p ? { ...p, colors } : p));
+    } catch (err) {
+      const reason = err instanceof ExtractError ? err.message : 'unknown';
+      trackEvent('extract_failed', { reason });
+      Sentry.captureException(err);
+    } finally {
+      setExtracting(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!id) return;
     getPalette(id).then((p) => {
-      if (p) { setPalette(p); setConfig(p.layoutConfig); }
+      if (p) {
+        setPalette(p);
+        setConfig(p.layoutConfig);
+        // processCapture() saves with colors: [] and doesn't wait on
+        // extraction — the photo shows immediately, colors populate here a
+        // moment later instead of gating navigation on it.
+        if (p.colors.length === 0) attemptExtraction(p);
+      }
       setLoading(false);
     });
-  }, [id]);
+  }, [id, attemptExtraction]);
 
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
-        // Flush any pending edit immediately instead of dropping it — the
-        // debounce timer never gets to fire once this screen unmounts.
         pendingFlushRef.current?.();
       }
     };
@@ -122,29 +131,9 @@ export default function PaletteScreen() {
     }
   }
 
-  async function handleRetry() {
-    if (!palette) return;
-    setExtracting(true);
-    try {
-      const colors = await extractColors(palette.thumbnailUri);
-      await updatePaletteColors(palette.id, colors);
-      setPalette((p) => p ? { ...p, colors } : p);
-    } catch (err) {
-      const reason = err instanceof ExtractError ? err.message : 'unknown';
-      trackEvent('extract_failed', { reason });
-      Sentry.captureException(err);
-    } finally {
-      setExtracting(false);
-    }
-  }
-
   async function handleExport(resolution: ExportResolution) {
     if (!palette || !config) return;
 
-    // Reset the daily count BEFORE reading it below — otherwise a free user
-    // who hit the limit yesterday stays permanently blocked, since
-    // incrementExportCount() (which also runs this check) never executes
-    // once the gate below routes them to /paywall instead of exporting.
     useSettingsStore.getState().resetExportCountIfNewDay();
     const { subscriptionStatus: currentSubscriptionStatus, exportDailyCount: currentExportDailyCount } =
       useSettingsStore.getState();
@@ -232,27 +221,33 @@ export default function PaletteScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ArchetypeCanvas
-          palette={palette}
-          config={config}
-          onWatermarkPress={() => {
-            router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
-          }}
-        />
+      <View
+        style={styles.canvasRegion}
+        onLayout={(e) => setCanvasMaxHeight(e.nativeEvent.layout.height)}
+      >
+        {canvasMaxHeight > 0 && (
+          <ArchetypeCanvas
+            palette={palette}
+            config={config}
+            maxHeight={canvasMaxHeight}
+            onWatermarkPress={() => {
+              router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
+            }}
+          />
+        )}
+      </View>
 
+      <View style={styles.swatchStrip}>
         {palette.colors.length === 0 ? (
-          <View style={styles.errorBanner}>
+          <TouchableOpacity
+            style={styles.retryPill}
+            onPress={() => attemptExtraction(palette)}
+            disabled={extracting}
+          >
             <Text variant="small" color={Colors.error}>
-              No se pudieron extraer los colores.
+              {extracting ? 'Extrayendo...' : 'Reintentar'}
             </Text>
-            <Button
-              label={extracting ? 'Extrayendo...' : 'Reintentar'}
-              onPress={handleRetry}
-              loading={extracting}
-              variant="ghost"
-            />
-          </View>
+          </TouchableOpacity>
         ) : (
           <View style={styles.swatchRow}>
             {palette.colors.map((c, i) => (
@@ -260,167 +255,24 @@ export default function PaletteScreen() {
             ))}
           </View>
         )}
+      </View>
 
-        <View style={styles.section}>
-          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
-            ARQUETIPOS
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.archetypeScroll}>
-            {Object.values(ARCHETYPES).map((a) => {
-              const active = config.archetypeId === a.id;
-              return (
-                <TouchableOpacity
-                  key={a.id}
-                  style={[styles.archPill, active && styles.archPillActive]}
-                  onPress={() => {
-                    updateConfig({ archetypeId: a.id });
-                    trackEvent('archetype_selected', { archetype_id: a.id });
-                  }}
-                >
-                  <Text
-                    variant="small"
-                    weight={active ? 'semibold' : 'regular'}
-                    color={active ? Colors.accentForeground : Colors.textPrimary}
-                  >
-                    {a.displayName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+      <EditTabs
+        paletteId={palette.id}
+        imageUri={palette.imageUri}
+        config={config}
+        updateConfig={updateConfig}
+        onImageUpdated={(updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => {
+          setPalette((p) => (p ? { ...p, ...updates } : p));
+        }}
+        onLockedPress={() => {
+          router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
+        }}
+      />
 
-        <View style={styles.section}>
-          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
-            TIPOGRAFÍA
-          </Text>
-          <View style={styles.fontRow}>
-            {[
-              { label: 'Moderna', key: 'sans' as const },
-              { label: 'Clásica', key: 'serif' as const },
-              { label: 'Técnica', key: 'mono' as const },
-            ].map(({ label, key }) => {
-              const active = config.fontFamily === key;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.archPill, active && styles.archPillActive]}
-                  onPress={() => {
-                    updateConfig({ fontFamily: key });
-                    trackEvent('config_changed', { config_key: 'fontFamily' });
-                  }}
-                >
-                  <Text
-                    variant="small"
-                    weight={active ? 'semibold' : 'regular'}
-                    color={active ? Colors.accentForeground : Colors.textPrimary}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
-            ESQUINAS
-          </Text>
-          <View style={styles.fontRow}>
-            {[
-              { label: 'Recta', value: 0 },
-              { label: 'Redonda', value: 16 },
-              { label: 'Píldora', value: PILL_CORNER_RADIUS },
-            ].map(({ label, value }) => {
-              const active = config.cornerRadius === value;
-              return (
-                <TouchableOpacity
-                  key={value}
-                  style={[styles.archPill, active && styles.archPillActive]}
-                  onPress={() => {
-                    updateConfig({ cornerRadius: value });
-                    trackEvent('config_changed', { config_key: 'cornerRadius' });
-                  }}
-                >
-                  <Text
-                    variant="small"
-                    weight={active ? 'semibold' : 'regular'}
-                    color={active ? Colors.accentForeground : Colors.textPrimary}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
-            ESTILO DE TARJETA
-          </Text>
-          <View style={styles.fontRow}>
-            {CARD_STYLE_OPTIONS.filter(
-              (opt) => opt.key !== 'blur' || ARCHETYPES[config.archetypeId].supportsBlur
-            ).map(({ label, key }) => {
-              const active = config.cardStyle === key;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.archPill, active && styles.archPillActive]}
-                  onPress={() => {
-                    updateConfig({ cardStyle: key });
-                    trackEvent('config_changed', { config_key: 'cardStyle' });
-                  }}
-                >
-                  <Text
-                    variant="small"
-                    weight={active ? 'semibold' : 'regular'}
-                    color={active ? Colors.accentForeground : Colors.textPrimary}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text variant="label" color={Colors.textSecondary} style={styles.sectionLabel}>
-            ETIQUETAS
-          </Text>
-          {[
-            { label: 'Mostrar hex', key: 'showHex' as const },
-            { label: 'Mostrar nombre', key: 'showName' as const },
-            { label: 'Mostrar RGB', key: 'showRGB' as const },
-          ].map(({ label, key }) => (
-            <View key={key} style={styles.toggleRow}>
-              <Text variant="body">{label}</Text>
-              <Switch
-                value={config[key]}
-                onValueChange={(val) => {
-                  updateConfig({ [key]: val });
-                  trackEvent('config_changed', { config_key: key });
-                }}
-                trackColor={{ true: Colors.accent }}
-              />
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.exportSection}>
-          <Button
-            label="Exportar"
-            onPress={() => setExportSheetVisible(true)}
-            variant="primary"
-            fullWidth
-          />
-        </View>
-
-        <View style={styles.bottomPad} />
-      </ScrollView>
+      <View style={styles.exportBar}>
+        <Button label="Exportar" onPress={() => setExportSheetVisible(true)} variant="primary" fullWidth />
+      </View>
 
       <Sheet visible={exportSheetVisible} onClose={() => setExportSheetVisible(false)}>
         <Text variant="h3" style={styles.sheetTitle}>Exportar paleta</Text>
@@ -485,16 +337,20 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
   confirmRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.lg, marginTop: Spacing.md },
   sheetAction: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
-  scroll: { paddingBottom: Spacing['2xl'] },
+  canvasRegion: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  swatchStrip: {
+    height: 52,
+    marginHorizontal: Spacing.md,
+    justifyContent: 'center',
+  },
   swatchRow: {
     flexDirection: 'row',
     height: 36,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
     borderRadius: Radius.md,
     overflow: 'hidden',
   },
   swatch: { flex: 1 },
+  retryPill: { alignSelf: 'flex-start' },
   errorBanner: {
     marginHorizontal: Spacing.md,
     marginTop: Spacing.md,
@@ -505,30 +361,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.error,
     gap: Spacing.sm,
   },
-  section: { marginTop: Spacing.lg, paddingHorizontal: Spacing.md },
-  sectionLabel: { marginBottom: Spacing.sm },
-  archetypeScroll: { marginHorizontal: -Spacing.md, paddingHorizontal: Spacing.md },
-  archPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    borderColor: Colors.borderDefault,
-    backgroundColor: Colors.bgElevated,
-    marginRight: Spacing.sm,
+  exportBar: {
+    padding: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderDefault,
   },
-  archPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  fontRow: { flexDirection: 'row' },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderDefault,
-  },
-  bottomPad: { height: Spacing.xl },
-  exportSection: { marginTop: Spacing.lg, paddingHorizontal: Spacing.md },
   sheetTitle: { marginBottom: Spacing.md },
   resolutionRow: {
     flexDirection: 'row',
