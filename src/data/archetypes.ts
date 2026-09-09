@@ -26,6 +26,8 @@ export interface ArchetypeDefinition {
    * archetypes where it wouldn't do anything.
    */
   supportsBlur: boolean;
+  /** Paywall hook — unset everywhere today. See src/lib/subscription/optionLock.ts. */
+  premium?: boolean;
 }
 
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeDefinition> = {
