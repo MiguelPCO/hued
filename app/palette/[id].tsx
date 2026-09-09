@@ -1,7 +1,7 @@
 // app/palette/[id].tsx
 import * as Sentry from '@sentry/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as MediaLibrary from 'expo-media-library';
+import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
