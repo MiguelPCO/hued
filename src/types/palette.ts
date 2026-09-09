@@ -24,7 +24,7 @@ export interface LayoutConfig {
   showHex: boolean;
   showName: boolean;
   showRGB: boolean;
-  fontFamily: 'sans' | 'serif' | 'mono';
+  fontFamily: 'sans' | 'serif' | 'mono' | 'condensed' | 'display';
   cornerRadius: number;
   cardStyle: CardStyle;
   watermarkVisible: boolean;

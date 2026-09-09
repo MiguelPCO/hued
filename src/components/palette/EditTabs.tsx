@@ -1,6 +1,7 @@
 // src/components/palette/EditTabs.tsx
 import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
+import { CornerControl } from '@/components/palette/CornerControl';
 import { CropTab } from '@/components/palette/CropTab';
 import { OptionCarousel } from '@/components/palette/OptionCarousel';
 import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
@@ -26,6 +27,8 @@ const FONT_OPTIONS: { key: LayoutConfig['fontFamily']; label: string; premium?: 
   { key: 'sans', label: 'Moderna' },
   { key: 'serif', label: 'Clásica' },
   { key: 'mono', label: 'Técnica' },
+  { key: 'condensed', label: 'Condensada' },
+  { key: 'display', label: 'Display' },
 ];
 
 const CORNER_OPTIONS: { key: number; label: string; premium?: boolean }[] = [
@@ -126,10 +129,10 @@ export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpd
         )}
 
         {activeTab === 'corners' && (
-          <OptionCarousel
-            options={CORNER_OPTIONS}
-            activeKey={config.cornerRadius}
-            onSelect={(cornerRadius) => {
+          <CornerControl
+            presets={CORNER_OPTIONS}
+            value={config.cornerRadius}
+            onChange={(cornerRadius) => {
               updateConfig({ cornerRadius });
               trackEvent('config_changed', { config_key: 'cornerRadius' });
             }}

@@ -16,10 +16,19 @@ import type { LayoutConfig } from '@/types/palette';
 // behavior in `Watermark.tsx`'s doc comment.
 export const PILL_CORNER_RADIUS = 9999;
 
-export const FONT_FAMILIES: Record<'sans' | 'serif' | 'mono', { ios: string; android: string }> = {
-  sans: { ios: 'Helvetica Neue', android: 'Roboto' },
+// Android values must be system font-alias strings Skia's default FontMgr can
+// resolve (see /system/etc/fonts.xml) — a literal family name like "Roboto"
+// isn't one of those aliases and silently falls back to Skia's built-in
+// default typeface, making the "Moderna" option look like a no-op.
+export const FONT_FAMILIES: Record<
+  'sans' | 'serif' | 'mono' | 'condensed' | 'display',
+  { ios: string; android: string }
+> = {
+  sans: { ios: 'Helvetica Neue', android: 'sans-serif' },
   serif: { ios: 'Georgia', android: 'serif' },
   mono: { ios: 'Courier', android: 'monospace' },
+  condensed: { ios: 'Avenir Next Condensed', android: 'sans-serif-condensed' },
+  display: { ios: 'Futura', android: 'sans-serif-black' },
 };
 
 // Outline stroke width and blur radius are expressed in the same pre-scale
@@ -49,7 +58,11 @@ export function shouldRenderWatermark(watermarkVisible: boolean, status: Subscri
   return watermarkVisible || status === 'free';
 }
 
-export function useArchetypeFonts(fontKey: 'sans' | 'serif' | 'mono', hexSize: number, nameSize: number) {
+export function useArchetypeFonts(
+  fontKey: 'sans' | 'serif' | 'mono' | 'condensed' | 'display',
+  hexSize: number,
+  nameSize: number
+) {
   const fontFamily = Platform.OS === 'ios' ? FONT_FAMILIES[fontKey].ios : FONT_FAMILIES[fontKey].android;
   const hexFont = useMemo(() => matchFont({ fontFamily, fontSize: hexSize }), [fontFamily, hexSize]);
   const nameFont = useMemo(() => matchFont({ fontFamily, fontSize: nameSize }), [fontFamily, nameSize]);
@@ -88,7 +101,7 @@ export function getCardFrame(config: LayoutConfig, width: number, height: number
         width={width - 2}
         height={height - 2}
         r={config.cornerRadius}
-        color="transparent"
+        color={Primitive.white}
         strokeWidth={OUTLINE_STROKE_WIDTH}
         style="stroke"
       />
