@@ -139,6 +139,36 @@ export async function updatePaletteLayout(id: string, config: LayoutConfig): Pro
   );
 }
 
+export async function updatePaletteImage(
+  id: string,
+  newImageUri: string,
+  newThumbnailUri: string
+): Promise<{ imageUri: string; thumbnailUri: string }> {
+  const palette = await getPalette(id);
+  if (!palette) throw new Error(`Palette not found: ${id}`);
+
+  const dir = paletteDir(palette.imageUri);
+  const timestamp = Date.now();
+  const imageUri = `${dir}full-${timestamp}.jpg`;
+  const thumbnailUri = `${dir}thumb-${timestamp}.jpg`;
+
+  await FileSystem.copyAsync({ from: newImageUri, to: imageUri });
+  await FileSystem.copyAsync({ from: newThumbnailUri, to: thumbnailUri });
+  await FileSystem.deleteAsync(palette.imageUri, { idempotent: true }).catch(() => {});
+  await FileSystem.deleteAsync(palette.thumbnailUri, { idempotent: true }).catch(() => {});
+
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE palettes SET image_uri = ?, thumbnail_uri = ?, updated_at = ? WHERE id = ?',
+    imageUri,
+    thumbnailUri,
+    timestamp,
+    id
+  );
+
+  return { imageUri, thumbnailUri };
+}
+
 export async function setPaletteCollection(id: string, collectionId: string | null): Promise<void> {
   const db = await getDb();
   await db.runAsync(

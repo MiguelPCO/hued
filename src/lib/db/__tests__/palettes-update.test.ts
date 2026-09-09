@@ -1,6 +1,7 @@
+import * as FileSystem from 'expo-file-system/legacy';
 import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
 import type { ExtractedColor, LayoutConfig } from '@/types/palette';
-import { updatePaletteColors, updatePaletteLayout, setPaletteCollection } from '../palettes';
+import { updatePaletteColors, updatePaletteLayout, setPaletteCollection, updatePaletteImage } from '../palettes';
 import { getDb } from '../client';
 
 jest.mock('expo-file-system/legacy', () => ({
@@ -17,6 +18,7 @@ const mockDb = {
   getAllAsync: jest.fn(),
 };
 (getDb as jest.Mock).mockResolvedValue(mockDb);
+const mockFs = FileSystem as jest.Mocked<typeof FileSystem>;
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -79,5 +81,71 @@ describe('setPaletteCollection', () => {
       expect.any(Number),
       'palette-3'
     );
+  });
+});
+
+describe('updatePaletteImage', () => {
+  const existingRow = {
+    id: 'palette-4',
+    image_uri: 'file:///documents/palettes/palette-4/full.jpg',
+    thumbnail_uri: 'file:///documents/palettes/palette-4/thumb.jpg',
+    colors: '[]',
+    layout_config: JSON.stringify(DEFAULT_LAYOUT_CONFIG),
+    collection_id: null,
+    meta: JSON.stringify({ capturedAt: 0, source: 'camera', aspectRatio: 'original' }),
+    created_at: 0,
+    updated_at: 0,
+    is_favorite: 0,
+    export_count: 0,
+  };
+
+  it('copies the new files into the palette dir under fresh names and deletes the old ones', async () => {
+    mockDb.getFirstAsync.mockResolvedValue(existingRow);
+
+    const result = await updatePaletteImage(
+      'palette-4',
+      'file:///tmp/new-full.jpg',
+      'file:///tmp/new-thumb.jpg'
+    );
+
+    expect(mockFs.copyAsync).toHaveBeenCalledWith({ from: 'file:///tmp/new-full.jpg', to: result.imageUri });
+    expect(mockFs.copyAsync).toHaveBeenCalledWith({ from: 'file:///tmp/new-thumb.jpg', to: result.thumbnailUri });
+    expect(mockFs.deleteAsync).toHaveBeenCalledWith(
+      'file:///documents/palettes/palette-4/full.jpg',
+      { idempotent: true }
+    );
+    expect(mockFs.deleteAsync).toHaveBeenCalledWith(
+      'file:///documents/palettes/palette-4/thumb.jpg',
+      { idempotent: true }
+    );
+    expect(result.imageUri).toContain('palettes/palette-4/full-');
+    expect(result.thumbnailUri).toContain('palettes/palette-4/thumb-');
+    expect(result.imageUri).not.toBe(existingRow.image_uri);
+  });
+
+  it('updates image_uri, thumbnail_uri, and updated_at in the DB', async () => {
+    mockDb.getFirstAsync.mockResolvedValue(existingRow);
+
+    const result = await updatePaletteImage(
+      'palette-4',
+      'file:///tmp/new-full.jpg',
+      'file:///tmp/new-thumb.jpg'
+    );
+
+    expect(mockDb.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE palettes SET image_uri'),
+      result.imageUri,
+      result.thumbnailUri,
+      expect.any(Number),
+      'palette-4'
+    );
+  });
+
+  it('throws when the palette does not exist', async () => {
+    mockDb.getFirstAsync.mockResolvedValue(undefined);
+
+    await expect(
+      updatePaletteImage('missing', 'file:///a.jpg', 'file:///b.jpg')
+    ).rejects.toThrow('Palette not found: missing');
   });
 });
