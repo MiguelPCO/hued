@@ -16,7 +16,7 @@ import { trackEvent } from '@/lib/analytics/events';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 
 interface Props {
-  onCapture: (uri: string) => void;
+  onCapture: (uri: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -63,7 +63,7 @@ export function CameraView({ onCapture, onCancel }: Props) {
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.3, exif: false });
       trackEvent('capture_completed', { source: 'camera', duration_ms: Date.now() - start });
-      onCapture(photo.uri);
+      await onCapture(photo.uri);
     } catch (err) {
       Sentry.captureException(err);
       setCaptureError('No se pudo tomar la foto. Intentalo de nuevo.');

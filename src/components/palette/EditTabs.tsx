@@ -1,5 +1,5 @@
 // src/components/palette/EditTabs.tsx
-import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 import { CropTab } from '@/components/palette/CropTab';
 import { OptionCarousel } from '@/components/palette/OptionCarousel';
@@ -64,7 +64,12 @@ export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpd
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBarRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabBarRow}
+        contentContainerStyle={styles.tabBarContent}
+      >
         {TABS.map((tab) => {
           const active = tab.key === activeTab;
           return (
@@ -85,7 +90,7 @@ export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpd
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       <View style={styles.carouselRow}>
         {activeTab === 'crop' && (
@@ -170,10 +175,10 @@ export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpd
 
 const styles = StyleSheet.create({
   container: { borderTopWidth: 1, borderTopColor: Colors.borderDefault },
-  tabBarRow: {
+  tabBarRow: { paddingTop: Spacing.sm },
+  tabBarContent: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
     gap: Spacing.lg,
   },
   tabItem: { alignItems: 'center', paddingBottom: Spacing.xs },

@@ -11,7 +11,7 @@ export default function CaptureScreen() {
       router.replace({ pathname: '/palette/[id]', params: { id: palette.id } });
     } catch (err) {
       Sentry.captureException(err);
-      router.replace('/(tabs)');
+      router.replace({ pathname: '/(tabs)', params: { captureFailed: '1' } });
     }
   }
 

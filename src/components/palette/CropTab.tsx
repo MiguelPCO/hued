@@ -77,6 +77,7 @@ export function CropTab({ paletteId, imageUri, onImageUpdated }: Props) {
         await updatePaletteColors(paletteId, colors);
       } catch (extractErr) {
         colors = [];
+        await updatePaletteColors(paletteId, []).catch(() => {});
         const reason = extractErr instanceof ExtractError ? extractErr.message : 'unknown';
         trackEvent('extract_failed', { reason });
         Sentry.captureException(extractErr);

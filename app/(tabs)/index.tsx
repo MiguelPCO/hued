@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +23,7 @@ export default function HomeScreen() {
   const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
   const [picking, setPicking] = useState(false);
   const [galleryDenied, setGalleryDenied] = useState(false);
+  const [captureFailed, setCaptureFailed] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -31,6 +32,11 @@ export default function HomeScreen() {
   const [manageSheetCollection, setManageSheetCollection] = useState<Collection | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [confirmingDeleteCollection, setConfirmingDeleteCollection] = useState(false);
+  const { captureFailed: captureFailedParam } = useLocalSearchParams<{ captureFailed?: string }>();
+
+  useEffect(() => {
+    if (captureFailedParam === '1') setCaptureFailed(true);
+  }, [captureFailedParam]);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,6 +55,7 @@ export default function HomeScreen() {
     if (picking) return;
     setPicking(true);
     setGalleryDenied(false);
+    setCaptureFailed(false);
     try {
       const result = await launchGalleryPicker();
       if (result.type === 'picked') {
@@ -59,6 +66,7 @@ export default function HomeScreen() {
       }
     } catch (err) {
       Sentry.captureException(err);
+      setCaptureFailed(true);
     } finally {
       setPicking(false);
     }
@@ -217,6 +225,11 @@ export default function HomeScreen() {
           {galleryDenied && (
             <Text variant="small" color={Colors.textSecondary} style={styles.centered}>
               Activa el permiso de galería en Ajustes del dispositivo.
+            </Text>
+          )}
+          {captureFailed && (
+            <Text variant="small" color={Colors.textSecondary} style={styles.centered}>
+              No se pudo procesar la foto. Intentalo de nuevo.
             </Text>
           )}
         </View>
