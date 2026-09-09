@@ -11,14 +11,17 @@ interface Props {
   palette: Palette;
   config: LayoutConfig;
   onWatermarkPress?: () => void;
+  maxHeight?: number;
 }
 
 const CANVAS_W = 360;
 const CANVAS_H = 450;
 
-export function ArchetypeCanvas({ palette, config, onWatermarkPress }: Props) {
+export function ArchetypeCanvas({ palette, config, onWatermarkPress, maxHeight }: Props) {
   const { width: screenW } = useWindowDimensions();
-  const scale = screenW / CANVAS_W;
+  const widthScale = screenW / CANVAS_W;
+  const scale = maxHeight ? Math.min(widthScale, maxHeight / CANVAS_H) : widthScale;
+  const displayW = CANVAS_W * scale;
   const displayH = CANVAS_H * scale;
   const image = useImage(palette.imageUri);
   const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
@@ -31,8 +34,8 @@ export function ArchetypeCanvas({ palette, config, onWatermarkPress }: Props) {
   const tapRegion = getWatermarkTapRegion(CANVAS_W, CANVAS_H);
 
   return (
-    <View style={{ width: screenW, height: displayH }}>
-      <Canvas style={{ width: screenW, height: displayH }}>
+    <View style={{ width: displayW, height: displayH, alignSelf: 'center' }}>
+      <Canvas style={{ width: displayW, height: displayH }}>
         <Group transform={[{ scale }]}>
           <Group clip={clip}>
             <Component {...archetypeProps} />
