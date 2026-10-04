@@ -115,7 +115,7 @@ jest.mock('expo-router', () => {
   };
   const withScreen = (host: string, screenHost: string) =>
     Object.assign(
-      ({ children }: { children?: unknown }) => React.createElement(host, null, children),
+      ({ children, ...props }: { children?: unknown }) => React.createElement(host, props, children),
       { Screen: (props: Record<string, unknown>) => React.createElement(screenHost, props) }
     );
   return {
