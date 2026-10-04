@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:ci": "pnpm typecheck && jest --coverage --ci",
     "preprocess-colors": "tsx scripts/preprocess-colors.ts"
   },
   "dependencies": {
@@ -56,14 +58,17 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/jest": "~29.5.14",
     "@types/react": "~19.2.4",
+    "@types/react-test-renderer": "^19.1.0",
     "eslint": "^9",
     "eslint-config-expo": "~57.0.2",
     "eslint-config-prettier": "^10.1.8",
     "jest-expo": "~57.0.5",
     "prettier": "^3.8.3",
+    "react-test-renderer": "19.2.3",
     "tsx": "^4.23.0",
     "typescript": "~6.0.3"
   },
@@ -72,6 +77,20 @@
     "testMatch": [
       "**/__tests__/**/*.test.ts",
       "**/__tests__/**/*.test.tsx"
+    ],
+    "globalSetup": "<rootDir>/test/globalSetup.js",
+    "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+    "moduleNameMapper": {
+      "^@test/(.*)$": "<rootDir>/test/$1",
+      "^@app/(.*)$": "<rootDir>/app/$1"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "app/**/*.{ts,tsx}",
+      "!src/**/__tests__/**",
+      "!src/**/*.d.ts",
+      "!src/types/**",
+      "!src/components/test/**"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
