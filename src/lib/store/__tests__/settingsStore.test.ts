@@ -93,3 +93,15 @@ describe('profile', () => {
     expect(useSettingsStore.getState().profilePhotoUri).toBe('file:///profile/avatar.jpg?t=123');
   });
 });
+
+describe('markAnalyticsPromptShown', () => {
+  afterEach(() => {
+    useSettingsStore.setState({ analyticsPromptShown: false });
+  });
+
+  it('starts unasked and flips to shown', () => {
+    expect(useSettingsStore.getState().analyticsPromptShown).toBe(false);
+    useSettingsStore.getState().markAnalyticsPromptShown();
+    expect(useSettingsStore.getState().analyticsPromptShown).toBe(true);
+  });
+});

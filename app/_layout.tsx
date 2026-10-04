@@ -22,6 +22,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PostHogProvider } from 'posthog-react-native';
 
+import { AnalyticsConsentSheet } from '@/components/AnalyticsConsentSheet';
 import { trackEvent } from '@/lib/analytics/events';
 import { posthog } from '@/lib/analytics/posthog';
 import { init as initRevenueCat } from '@/lib/revenuecat/client';
@@ -73,6 +74,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
         <StatusBar style="dark" />
+        <AnalyticsConsentSheet />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
