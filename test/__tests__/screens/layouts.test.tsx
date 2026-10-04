@@ -101,7 +101,7 @@ describe('RootLayout — startup', () => {
     expect(trackEvent).toHaveBeenCalledWith('app_opened', { source: 'cold_start' });
   });
 
-  it('loads the three font families the design tokens reference', () => {
+  it('loads the four font families the design tokens reference', () => {
     render(<RootLayout />);
 
     const families = Object.keys((useFonts as jest.Mock).mock.calls[0][0]);
@@ -136,6 +136,14 @@ describe('RootLayout — structure', () => {
       paywall: 'modal',
       onboarding: 'fullScreenModal',
     });
+  });
+
+  it('the route-file helper finds the routes that do exist (guards the H-02 check below)', () => {
+    const registered = findAll(render(<RootLayout />).toJSON(), 'StackScreen').map((s) => String(s.props.name));
+
+    expect(registered.filter((name) => name !== 'onboarding' && !routeFileExists(name))).toEqual([]);
+    expect(registered.filter((name) => routeFileExists(name))).toEqual(['(tabs)', 'palette/[id]', 'paywall']);
+    expect(routeFileExists('onboarding')).toBe(false);
   });
 
   // H-02: `onboarding` está registrada pero `app/onboarding.tsx` no existe. expo-router
