@@ -8,7 +8,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.migueldev.hued"
     },
     "android": {
       "package": "com.migueldev.hued",
@@ -18,14 +19,14 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.READ_MEDIA_AUDIO"
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ]
     },
     "web": {
@@ -47,13 +48,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Hued necesita la cámara para capturar fotos y crear paletas de colores."
+          "cameraPermission": "Hued necesita la cámara para capturar fotos y crear paletas de colores.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Hued necesita acceso a tu galería para crear paletas desde tus fotos."
+          "photosPermission": "Hued necesita acceso a tu galería para crear paletas desde tus fotos.",
+          "microphonePermission": false
         }
       ],
       [
@@ -61,9 +65,13 @@
         {
           "photosPermission": "Hued necesita acceso a tus fotos para guardar las paletas exportadas.",
           "savePhotosPermission": "Hued necesita acceso a tus fotos para guardar las paletas exportadas.",
-          "isAccessMediaLocationEnabled": false
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": []
         }
-      ]
+      ],
+      "./plugins/withLegacyStorageMaxSdk",
+      "expo-font",
+      "expo-sharing"
     ],
     "extra": {
       "router": {},

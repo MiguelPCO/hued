@@ -1,7 +1,14 @@
 import * as Sentry from '@sentry/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PurchasesPackage } from 'react-native-purchases';
 
@@ -10,6 +17,7 @@ import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
 import type { PaywallTrigger } from '@/lib/analytics/events';
+import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat/client';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 
@@ -130,6 +138,19 @@ export default function PaywallScreen() {
         <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
           <Text variant="small" color={Colors.textSecondary}>Restaurar compras</Text>
         </TouchableOpacity>
+
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link">
+            <Text variant="small" color={Colors.textSecondary} style={styles.legalLink}>
+              Condiciones de uso
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
+            <Text variant="small" color={Colors.textSecondary} style={styles.legalLink}>
+              Política de privacidad
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -162,4 +183,6 @@ const styles = StyleSheet.create({
   },
   errorText: { marginTop: Spacing.sm },
   restoreBtn: { alignSelf: 'center', marginTop: Spacing.lg, padding: Spacing.sm },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg },
+  legalLink: { textDecorationLine: 'underline', padding: Spacing.sm },
 });

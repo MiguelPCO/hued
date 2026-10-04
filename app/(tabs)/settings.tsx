@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
@@ -16,6 +18,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
+import { posthog } from '@/lib/analytics/posthog';
+import { PRIVACY_URL } from '@/lib/legal';
 import { pickAvatarFromCamera, pickAvatarFromGallery, saveAvatar } from '@/lib/profile/avatar';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -41,6 +45,19 @@ export default function SettingsScreen() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [nameSheetVisible, setNameSheetVisible] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
+  const [analyticsOn, setAnalyticsOn] = useState(false);
+
+  // PostHog lee la elección guardada de forma asíncrona; hasta entonces el switch sale apagado.
+  useEffect(() => {
+    const ph = posthog;
+    if (ph) ph.ready().then(() => setAnalyticsOn(!ph.optedOut));
+  }, []);
+
+  function handleAnalyticsToggle(on: boolean) {
+    setAnalyticsOn(on);
+    if (on) posthog?.optIn();
+    else posthog?.optOut();
+  }
 
   async function handlePickAvatar(source: 'camera' | 'gallery') {
     setPhotoSheetVisible(false);
@@ -115,6 +132,32 @@ export default function SettingsScreen() {
         )}
       </View>
 
+      <View style={styles.section}>
+        {posthog && (
+          <View style={styles.settingRow}>
+            <View style={styles.settingText}>
+              <Text variant="body">Estadísticas de uso</Text>
+              <Text variant="small" color={Colors.textSecondary}>
+                Nos ayuda a mejorar Hued. Nunca incluye tus fotos ni tus colores.
+              </Text>
+            </View>
+            <Switch
+              value={analyticsOn}
+              onValueChange={handleAnalyticsToggle}
+              trackColor={{ true: Colors.accent }}
+            />
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => Linking.openURL(PRIVACY_URL)}
+          accessibilityRole="link"
+        >
+          <Text variant="body">Política de privacidad</Text>
+          <Icon name="chevron-right" size={20} color={Colors.textTertiary} />
+        </TouchableOpacity>
+      </View>
+
       <Sheet visible={photoSheetVisible} onClose={() => setPhotoSheetVisible(false)}>
         <TouchableOpacity style={styles.sheetRow} onPress={() => handlePickAvatar('camera')}>
           <Icon name="camera-alt" size={20} />
@@ -183,6 +226,16 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.xs,
   },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderDefault,
+  },
+  settingText: { flex: 1, gap: Spacing.xs },
   sheetRow: {
     flexDirection: 'row',
     alignItems: 'center',
