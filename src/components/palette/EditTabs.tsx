@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-na
 import { CornerControl } from '@/components/palette/CornerControl';
 import { CropTab } from '@/components/palette/CropTab';
 import { OptionCarousel } from '@/components/palette/OptionCarousel';
+import { PaletteSizeControl } from '@/components/palette/PaletteSizeControl';
 import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
 import { Text } from '@/components/ui/Text';
 import { ARCHETYPES } from '@/data/archetypes';
@@ -12,11 +13,12 @@ import { Colors, Spacing } from '@/lib/tokens';
 import type { CardStyle, ExtractedColor, LayoutConfig } from '@/types/palette';
 import { useState } from 'react';
 
-type TabKey = 'crop' | 'archetype' | 'font' | 'corners' | 'cardStyle' | 'labels';
+type TabKey = 'crop' | 'archetype' | 'colors' | 'font' | 'corners' | 'cardStyle' | 'labels';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'crop', label: 'Recorte' },
   { key: 'archetype', label: 'Arquetipo' },
+  { key: 'colors', label: 'Colores' },
   { key: 'font', label: 'Tipografía' },
   { key: 'corners', label: 'Esquinas' },
   { key: 'cardStyle', label: 'Estilo' },
@@ -59,10 +61,23 @@ interface Props {
   config: LayoutConfig;
   updateConfig: (partial: Partial<LayoutConfig>) => void;
   onImageUpdated: (updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => void;
+  onPaletteSizeChange: (paletteSize: number) => void;
+  onResetLibreLayout: () => void;
+  paletteSizeChanging?: boolean;
   onLockedPress: () => void;
 }
 
-export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpdated, onLockedPress }: Props) {
+export function EditTabs({
+  paletteId,
+  imageUri,
+  config,
+  updateConfig,
+  onImageUpdated,
+  onPaletteSizeChange,
+  onResetLibreLayout,
+  paletteSizeChanging,
+  onLockedPress,
+}: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('archetype');
 
   return (
@@ -97,22 +112,44 @@ export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpd
 
       <View style={styles.carouselRow}>
         {activeTab === 'crop' && (
-          <CropTab paletteId={paletteId} imageUri={imageUri} onImageUpdated={onImageUpdated} />
+          <CropTab
+            paletteId={paletteId}
+            imageUri={imageUri}
+            paletteSize={config.paletteSize}
+            onImageUpdated={onImageUpdated}
+          />
         )}
 
         {activeTab === 'archetype' && (
-          <OptionCarousel
-            options={Object.values(ARCHETYPES).map((a) => ({
-              key: a.id,
-              label: a.displayName,
-              premium: a.premium,
-            }))}
-            activeKey={config.archetypeId}
-            onSelect={(archetypeId) => {
-              updateConfig({ archetypeId });
-              trackEvent('archetype_selected', { archetype_id: archetypeId });
-            }}
-            onLockedPress={onLockedPress}
+          <View>
+            <OptionCarousel
+              options={Object.values(ARCHETYPES).map((a) => ({
+                key: a.id,
+                label: a.displayName,
+                premium: a.premium,
+              }))}
+              activeKey={config.archetypeId}
+              onSelect={(archetypeId) => {
+                updateConfig({ archetypeId });
+                trackEvent('archetype_selected', { archetype_id: archetypeId });
+              }}
+              onLockedPress={onLockedPress}
+            />
+            {config.archetypeId === 'libre' && (
+              <TouchableOpacity style={styles.resetLayoutBtn} onPress={onResetLibreLayout} hitSlop={8}>
+                <Text variant="small" weight="semibold" color={Colors.accent}>
+                  Restablecer layout
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'colors' && (
+          <PaletteSizeControl
+            value={config.paletteSize ?? 5}
+            onChange={onPaletteSizeChange}
+            disabled={paletteSizeChanging}
           />
         )}
 
@@ -178,6 +215,7 @@ export function EditTabs({ paletteId, imageUri, config, updateConfig, onImageUpd
 
 const styles = StyleSheet.create({
   container: { borderTopWidth: 1, borderTopColor: Colors.borderDefault },
+  resetLayoutBtn: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
   tabBarRow: { paddingTop: Spacing.sm },
   tabBarContent: {
     flexDirection: 'row',

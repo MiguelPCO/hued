@@ -3,9 +3,11 @@ import type { ComponentType } from 'react';
 import { BannerArchetype } from '@/components/compose/archetypes/BannerArchetype';
 import { EditorialArchetype } from '@/components/compose/archetypes/EditorialArchetype';
 import { GridArchetype } from '@/components/compose/archetypes/GridArchetype';
+import { LibreArchetype } from '@/components/compose/archetypes/LibreArchetype';
 import { SideArchetype } from '@/components/compose/archetypes/SideArchetype';
 import { StripArchetype } from '@/components/compose/archetypes/StripArchetype';
-import type { ArchetypeProps } from '@/components/compose/archetypes/types';
+import type { ArchetypeProps, EditOverlayComponent } from '@/components/compose/archetypes/types';
+import { LibreEditOverlay } from '@/components/compose/LibreEditOverlay';
 import type { ArchetypeId, LayoutConfig } from '@/types/palette';
 
 export interface ArchetypeDefinition {
@@ -28,6 +30,8 @@ export interface ArchetypeDefinition {
   supportsBlur: boolean;
   /** Paywall hook — unset everywhere today. See src/lib/subscription/optionLock.ts. */
   premium?: boolean;
+  /** Interactive edit-screen overlay (currently only Libre's drag/resize handles) — see EditOverlayProps. */
+  EditOverlay?: EditOverlayComponent;
 }
 
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeDefinition> = {
@@ -70,5 +74,14 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeDefinition> = {
     Component: SideArchetype,
     defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
     supportsBlur: false,
+  },
+  libre: {
+    id: 'libre',
+    displayName: 'Libre',
+    description: 'Imagen a sangre completa con muestras de color que arrastras y redimensionas donde quieras.',
+    Component: LibreArchetype,
+    defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
+    supportsBlur: false,
+    EditOverlay: LibreEditOverlay,
   },
 };

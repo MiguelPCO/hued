@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ArchetypeCanvas } from '@/components/compose/ArchetypeCanvas';
+import { ArchetypeCanvas, CANVAS_H, CANVAS_W } from '@/components/compose/ArchetypeCanvas';
+import { generateScatterLayout } from '@/components/compose/archetypes/freeformLayout';
 import { EditTabs } from '@/components/palette/EditTabs';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -33,7 +34,7 @@ import { trackEvent } from '@/lib/analytics/events';
 import { canExportToday } from '@/lib/subscription/exportGate';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
-import type { ExtractedColor, LayoutConfig, Palette } from '@/types/palette';
+import type { ExtractedColor, FreeformSwatch, LayoutConfig, Palette } from '@/types/palette';
 
 const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
   { value: '1x', label: '1×' },
@@ -96,22 +97,78 @@ export default function PaletteScreen() {
     };
   }, []);
 
-  const updateConfig = useCallback((partial: Partial<LayoutConfig>) => {
-    setConfig((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...partial };
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      const flush = () => {
-        pendingFlushRef.current = null;
-        if (id) {
-          updatePaletteLayout(id, next).catch(Sentry.captureException);
-        }
-      };
-      pendingFlushRef.current = flush;
-      debounceRef.current = setTimeout(flush, 500);
-      return next;
+  const updateConfig = useCallback(
+    (partialOrFn: Partial<LayoutConfig> | ((prev: LayoutConfig) => Partial<LayoutConfig>)) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const partial = typeof partialOrFn === 'function' ? partialOrFn(prev) : partialOrFn;
+        const next = { ...prev, ...partial };
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        const flush = () => {
+          pendingFlushRef.current = null;
+          if (id) {
+            updatePaletteLayout(id, next).catch(Sentry.captureException);
+          }
+        };
+        pendingFlushRef.current = flush;
+        debounceRef.current = setTimeout(flush, 500);
+        return next;
+      });
+    },
+    [id]
+  );
+
+  const updateLibreSwatches = useCallback(
+    (updater: (prev: FreeformSwatch[]) => FreeformSwatch[]) => {
+      updateConfig((prev) => ({ freeformSwatches: updater(prev.freeformSwatches) }));
+    },
+    [updateConfig]
+  );
+
+  // Seed a fresh scatter layout the moment libre becomes active with no (or
+  // stale) swatch data — first time switching to it, or right after a
+  // paletteSize change reset freeformSwatches to [] (ADR-0001). Runs through
+  // the same updateConfig path as every other config field, so it's
+  // debounced/persisted identically instead of needing its own write path.
+  useEffect(() => {
+    if (!palette || !config) return;
+    if (config.archetypeId !== 'libre') return;
+    if (config.freeformSwatches.length === palette.colors.length) return;
+    updateConfig({
+      freeformSwatches: generateScatterLayout(palette.colors.length, CANVAS_W, CANVAS_H),
     });
-  }, [id]);
+  }, [palette, config, updateConfig]);
+
+  const resetLibreLayout = useCallback(() => {
+    if (!palette) return;
+    updateConfig({ freeformSwatches: generateScatterLayout(palette.colors.length, CANVAS_W, CANVAS_H) });
+    trackEvent('config_changed', { config_key: 'freeformSwatches_reset' });
+  }, [palette, updateConfig]);
+
+  const handlePaletteSizeChange = useCallback(
+    async (newSize: number) => {
+      if (!palette) return;
+      if (newSize === palette.colors.length) return; // no-op: same size already extracted
+      setExtracting(true);
+      try {
+        const colors = await extractColors(palette.thumbnailUri, newSize);
+        await updatePaletteColors(palette.id, colors);
+        setPalette((p) => (p ? { ...p, colors } : p));
+        // Reset (not remap) per ADR-0001: colors re-sort by luminosity on
+        // every extraction, so an old position's index no longer points at
+        // "the same" color.
+        updateConfig({ paletteSize: newSize, freeformSwatches: [] });
+        trackEvent('config_changed', { config_key: 'paletteSize' });
+      } catch (err) {
+        const reason = err instanceof ExtractError ? err.message : 'unknown';
+        trackEvent('extract_failed', { reason });
+        Sentry.captureException(err);
+      } finally {
+        setExtracting(false);
+      }
+    },
+    [palette, updateConfig]
+  );
 
   async function handleDelete() {
     if (!palette) return;
@@ -149,7 +206,8 @@ export default function PaletteScreen() {
     try {
       const uri = await exportPalette(palette, config, resolution);
 
-      const permission = await MediaLibrary.requestPermissionsAsync();
+      // writeOnly: solo guardar. Android 13+ no pide nada (sin READ_MEDIA_IMAGES) e iOS pide "solo añadir".
+      const permission = await MediaLibrary.requestPermissionsAsync(true);
       if (!permission.granted) {
         setExportError('Activa el permiso de fotos en Ajustes del dispositivo.');
         setExportState('idle');
@@ -233,6 +291,7 @@ export default function PaletteScreen() {
             onWatermarkPress={() => {
               router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
             }}
+            onLibreSwatchesChange={updateLibreSwatches}
           />
         )}
       </View>
@@ -265,6 +324,9 @@ export default function PaletteScreen() {
         onImageUpdated={(updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => {
           setPalette((p) => (p ? { ...p, ...updates } : p));
         }}
+        onPaletteSizeChange={handlePaletteSizeChange}
+        onResetLibreLayout={resetLibreLayout}
+        paletteSizeChanging={extracting}
         onLockedPress={() => {
           router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
         }}

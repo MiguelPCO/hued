@@ -29,10 +29,11 @@ const RATIOS: AspectRatio[] = ['1:1', '4:5', '9:16', 'original'];
 interface Props {
   paletteId: string;
   imageUri: string;
+  paletteSize: number;
   onImageUpdated: (updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => void;
 }
 
-export function CropTab({ paletteId, imageUri, onImageUpdated }: Props) {
+export function CropTab({ paletteId, imageUri, paletteSize, onImageUpdated }: Props) {
   const [cropping, setCropping] = useState<AspectRatio | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,7 +74,7 @@ export function CropTab({ paletteId, imageUri, onImageUpdated }: Props) {
 
       let colors: ExtractedColor[] = [];
       try {
-        colors = await extractColors(newThumbnailUri);
+        colors = await extractColors(newThumbnailUri, paletteSize);
         await updatePaletteColors(paletteId, colors);
       } catch (extractErr) {
         colors = [];

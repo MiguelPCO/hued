@@ -2,6 +2,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { monotonicFactory } from 'ulidx';
 
+import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
 import type { ExtractedColor, LayoutConfig, Palette, PaletteMeta } from '@/types/palette';
 import { getDb } from './client';
 
@@ -35,7 +36,11 @@ function rowToPalette(row: PaletteRow): Palette {
     imageUri: row.image_uri,
     thumbnailUri: row.thumbnail_uri,
     colors: JSON.parse(row.colors) as ExtractedColor[],
-    layoutConfig: JSON.parse(row.layout_config) as LayoutConfig,
+    // Rows saved before a LayoutConfig field existed (e.g. paletteSize,
+    // freeformSwatches) have it missing from the stored JSON blob — merge
+    // over defaults here, once, so every consumer can assume a complete
+    // LayoutConfig instead of guarding each read site.
+    layoutConfig: { ...DEFAULT_LAYOUT_CONFIG, ...(JSON.parse(row.layout_config) as Partial<LayoutConfig>) },
     collectionId: row.collection_id,
     meta: JSON.parse(row.meta) as PaletteMeta,
     createdAt: row.created_at,

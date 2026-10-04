@@ -36,20 +36,64 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
   const thumbX =
     trackWidth > THUMB_SIZE ? (clampedValue / MAX_RADIUS) * (trackWidth - THUMB_SIZE) : 0;
 
-  const handleTrackGesture = (evt: GestureResponderEvent) => {
-    const width = trackWidthRef.current;
-    if (width <= 0) return;
-    const x = Math.max(0, Math.min(evt.nativeEvent.locationX, width));
-    const radius = Math.round((x / width) * MAX_RADIUS);
-    onChange(radius);
+  // Committing on every raw touch-move tick fires far more than once per
+  // frame and floods the parent with setState + full canvas re-renders,
+  // which read as stutter/freeze. Coalesce to at most one `onChange` per
+  // animation frame instead.
+  const pendingRadiusRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    },
+    []
+  );
+
+  const scheduleRadius = (radius: number) => {
+    pendingRadiusRef.current = radius;
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        if (pendingRadiusRef.current !== null) {
+          onChange(pendingRadiusRef.current);
+          pendingRadiusRef.current = null;
+        }
+      });
+    }
   };
+
+  // `locationX` is only reliable on the very first touch event — once the
+  // thumb view re-renders under the finger mid-drag, Android re-hit-tests
+  // per move and reports locationX relative to whatever view is currently
+  // underneath, not the track. That produced the reported "jump" (thumb
+  // snapping to bogus positions during a drag). Fix: read the start radius
+  // once via locationX on grant, then drive the rest of the drag off
+  // `gestureState.dx` (a page-space delta from the initial touch), which
+  // isn't subject to re-hit-testing.
+  const startRadiusRef = useRef(clampedValue);
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: handleTrackGesture,
-      onPanResponderMove: handleTrackGesture,
+      onPanResponderGrant: (evt: GestureResponderEvent) => {
+        const width = trackWidthRef.current;
+        if (width <= 0) return;
+        const x = Math.max(0, Math.min(evt.nativeEvent.locationX, width));
+        const radius = Math.round((x / width) * MAX_RADIUS);
+        startRadiusRef.current = radius;
+        scheduleRadius(radius);
+      },
+      onPanResponderMove: (_evt, gestureState) => {
+        const width = trackWidthRef.current;
+        if (width <= 0) return;
+        const deltaRadius = (gestureState.dx / width) * MAX_RADIUS;
+        const radius = Math.round(
+          Math.max(MIN_RADIUS, Math.min(startRadiusRef.current + deltaRadius, MAX_RADIUS))
+        );
+        scheduleRadius(radius);
+      },
     })
   ).current;
 

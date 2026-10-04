@@ -35,11 +35,20 @@ beforeEach(() => {
 });
 
 describe('extractColors', () => {
-  it('returns exactly 5 colors', async () => {
+  it('returns exactly 5 colors by default', async () => {
     const pixels = solidPixels(200, 50, 50, 100);
     (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(pixels));
     const colors = await extractColors('file:///thumb.jpg');
     expect(colors).toHaveLength(5);
+  });
+
+  it('returns paletteSize colors when specified', async () => {
+    const pixels = solidPixels(200, 50, 50, 100);
+    (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(pixels));
+    const colors3 = await extractColors('file:///thumb.jpg', 3);
+    expect(colors3).toHaveLength(3);
+    const colors8 = await extractColors('file:///thumb.jpg', 8);
+    expect(colors8).toHaveLength(8);
   });
 
   it('colors are sorted by L-channel descending (light to dark)', async () => {

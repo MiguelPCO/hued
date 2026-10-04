@@ -5,19 +5,25 @@ import { getCardFrame, shouldRenderWatermark } from '@/components/compose/archet
 import { getWatermarkTapRegion, Watermark } from '@/components/compose/archetypes/Watermark';
 import { ARCHETYPES } from '@/data/archetypes';
 import { useSettingsStore } from '@/lib/store/settingsStore';
-import type { Palette, LayoutConfig } from '@/types/palette';
+import type { FreeformSwatch, Palette, LayoutConfig } from '@/types/palette';
 
 interface Props {
   palette: Palette;
   config: LayoutConfig;
   onWatermarkPress?: () => void;
   maxHeight?: number;
+  /**
+   * Present only when this canvas should be interactive (the edit screen).
+   * Read-only render contexts simply omit it, so the libre archetype's drag
+   * handles never appear anywhere but the one screen that wired this up.
+   */
+  onLibreSwatchesChange?: (updater: (prev: FreeformSwatch[]) => FreeformSwatch[]) => void;
 }
 
-const CANVAS_W = 360;
-const CANVAS_H = 450;
+export const CANVAS_W = 360;
+export const CANVAS_H = 450;
 
-export function ArchetypeCanvas({ palette, config, onWatermarkPress, maxHeight }: Props) {
+export function ArchetypeCanvas({ palette, config, onWatermarkPress, maxHeight, onLibreSwatchesChange }: Props) {
   const { width: screenW } = useWindowDimensions();
   const widthScale = screenW / CANVAS_W;
   const scale = maxHeight ? Math.min(widthScale, maxHeight / CANVAS_H) : widthScale;
@@ -28,7 +34,7 @@ export function ArchetypeCanvas({ palette, config, onWatermarkPress, maxHeight }
 
   const archetypeProps = { palette, config, width: CANVAS_W, height: CANVAS_H, image };
   const { clip, overlay } = getCardFrame(config, CANVAS_W, CANVAS_H);
-  const { Component } = ARCHETYPES[config.archetypeId];
+  const { Component, EditOverlay } = ARCHETYPES[config.archetypeId];
 
   const watermarkShown = shouldRenderWatermark(config.watermarkVisible, subscriptionStatus);
   const tapRegion = getWatermarkTapRegion(CANVAS_W, CANVAS_H);
@@ -58,6 +64,17 @@ export function ArchetypeCanvas({ palette, config, onWatermarkPress, maxHeight }
             width: tapRegion.width * scale,
             height: tapRegion.height * scale,
           }}
+        />
+      )}
+
+      {EditOverlay && onLibreSwatchesChange && config.freeformSwatches.length === palette.colors.length && (
+        <EditOverlay
+          palette={palette}
+          config={config}
+          scale={scale}
+          canvasW={CANVAS_W}
+          canvasH={CANVAS_H}
+          onFreeformSwatchesChange={onLibreSwatchesChange}
         />
       )}
     </View>

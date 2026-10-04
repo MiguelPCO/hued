@@ -10,7 +10,7 @@ export class ExtractError extends Error {
   }
 }
 
-const K = 5;
+const DEFAULT_K = 5;
 const MAX_ITER = 20;
 const SAMPLE_STEP = 4;
 
@@ -20,10 +20,10 @@ function dist2(a: RGB, b: RGB): number {
   return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
 }
 
-function initCentroids(samples: RGB[]): RGB[] {
+function initCentroids(samples: RGB[], k: number): RGB[] {
   const centroids: RGB[] = [];
   centroids.push(samples[Math.floor(Math.random() * samples.length)]);
-  while (centroids.length < K) {
+  while (centroids.length < k) {
     const dists = samples.map((s) => Math.min(...centroids.map((c) => dist2(s, c))));
     const sum = dists.reduce((a, b) => a + b, 0);
     let r = Math.random() * sum;
@@ -57,12 +57,12 @@ function assignWithDist(samples: RGB[], centroids: RGB[]): { idx: number[]; dist
   return { idx, dist };
 }
 
-function kmeans(samples: RGB[], centroids: RGB[]): RGB[] {
+function kmeans(samples: RGB[], centroids: RGB[], k: number): RGB[] {
   let centers = centroids.map((c) => [...c] as RGB);
   for (let iter = 0; iter < MAX_ITER; iter++) {
     const { idx: asgn, dist } = assignWithDist(samples, centers);
-    const sums: RGB[] = Array.from({ length: K }, () => [0, 0, 0] as RGB);
-    const counts = new Array<number>(K).fill(0);
+    const sums: RGB[] = Array.from({ length: k }, () => [0, 0, 0] as RGB);
+    const counts = new Array<number>(k).fill(0);
     samples.forEach((s, i) => {
       const c = asgn[i];
       sums[c][0] += s[0]; sums[c][1] += s[1]; sums[c][2] += s[2];
@@ -99,7 +99,11 @@ function kmeans(samples: RGB[], centroids: RGB[]): RGB[] {
   return centers;
 }
 
-export async function extractColors(thumbnailUri: string): Promise<ExtractedColor[]> {
+export async function extractColors(
+  thumbnailUri: string,
+  paletteSize: number = DEFAULT_K
+): Promise<ExtractedColor[]> {
+  const k = paletteSize;
   const response = await fetch(thumbnailUri);
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -122,11 +126,11 @@ export async function extractColors(thumbnailUri: string): Promise<ExtractedColo
     if (pixels[i + 3] < 128) continue;
     samples.push([pixels[i], pixels[i + 1], pixels[i + 2]]);
   }
-  if (samples.length < K) throw new ExtractError(`Too few opaque pixels: ${samples.length}`);
+  if (samples.length < k) throw new ExtractError(`Too few opaque pixels: ${samples.length}`);
 
-  const centroids = kmeans(samples, initCentroids(samples));
+  const centroids = kmeans(samples, initCentroids(samples, k), k);
   const assignments = assign(samples, centroids);
-  const counts = new Array<number>(K).fill(0);
+  const counts = new Array<number>(k).fill(0);
   assignments.forEach((c) => counts[c]++);
   const total = samples.length;
 

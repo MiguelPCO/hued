@@ -16,6 +16,8 @@ interface Props<T extends string | number> {
   activeKey: T;
   onSelect: (key: T) => void;
   onLockedPress?: (key: T) => void;
+  /** Blocks all selection (not just premium-locked options) — e.g. while an async change from a previous selection is still in flight. */
+  disabled?: boolean;
 }
 
 export function OptionCarousel<T extends string | number>({
@@ -23,11 +25,17 @@ export function OptionCarousel<T extends string | number>({
   activeKey,
   onSelect,
   onLockedPress,
+  disabled,
 }: Props<T>) {
   const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+    >
       {options.map((option) => {
         const active = option.key === activeKey;
         const locked = isOptionLocked(option.premium, subscriptionStatus);
@@ -35,6 +43,7 @@ export function OptionCarousel<T extends string | number>({
           <TouchableOpacity
             key={String(option.key)}
             style={[styles.pill, active && styles.pillActive]}
+            disabled={disabled}
             onPress={() => (locked ? onLockedPress?.(option.key) : onSelect(option.key))}
           >
             <Text
@@ -53,7 +62,8 @@ export function OptionCarousel<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
-  scroll: { marginHorizontal: -Spacing.md, paddingHorizontal: Spacing.md },
+  scroll: { marginHorizontal: -Spacing.md },
+  content: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
   pill: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -61,7 +71,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderDefault,
     backgroundColor: Colors.bgElevated,
-    marginRight: Spacing.sm,
   },
   pillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
 });
