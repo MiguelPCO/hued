@@ -129,3 +129,13 @@ Each sprint has day-by-day tasks with EOD checks, acceptance criteria, and defin
 - **PRD.md** — product vision, personas, scope, success metrics
 - **SCHEMA.md** — technical architecture, data models, ADRs
 - **SPRINTS.md** — day-by-day execution plan
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues (`MiguelPCO/hued`), via `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
