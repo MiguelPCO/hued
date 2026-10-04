@@ -8,7 +8,7 @@ import { listCollections } from '@/lib/db/collections';
 import { deletePalette, duplicatePalette, setPaletteCollection, toggleFavorite } from '@/lib/db/palettes';
 import { exportPalette } from '@/lib/export/exportPalette';
 import { Colors } from '@/lib/tokens';
-import { makeColors, makePalette } from '@test/factories';
+import { makeColor, makeColors, makePalette } from '@test/factories';
 import { PaletteCard } from '../PaletteCard';
 
 jest.mock('@/lib/analytics/events', () => ({ trackEvent: jest.fn() }));
@@ -39,6 +39,10 @@ function setup(overrides = {}) {
 }
 
 const card = () => screen.UNSAFE_getAllByType(TouchableOpacity)[0];
+const emptySwatches = () =>
+  screen.UNSAFE_root.findAll(
+    (n) => (n.type as unknown) === 'View' && StyleSheet.flatten(n.props.style)?.backgroundColor === Colors.bgSecondary
+  );
 const longPress = () => fireEvent(card(), 'longPress');
 const heart = (name: string) =>
   screen.UNSAFE_root.findAll((n) => (n.type as unknown) === 'MaterialIcons' && n.props.name === name)[0];
@@ -75,10 +79,17 @@ describe('PaletteCard — card', () => {
     expect(chips).toHaveLength(5);
   });
 
-  it('renders a palette that has no colors yet (still extracting)', () => {
-    setup({ palette: makePalette({ colors: [], createdAt: palette.createdAt }) });
+  it('shows one placeholder swatch for a palette that has no colors yet (still extracting)', () => {
+    setup({ palette: makePalette({ colors: [] }) });
 
-    expect(screen.getByText('4 oct 2026')).toBeOnTheScreen();
+    expect(emptySwatches()).toHaveLength(1);
+  });
+
+  it('shows no placeholder swatch when the palette has colors', () => {
+    // makeColors(5) starts with #FFF6E8 (= Colors.bgSecondary), so use a colour that cannot collide.
+    setup({ palette: makePalette({ colors: [makeColor()] }) });
+
+    expect(emptySwatches()).toHaveLength(0);
   });
 
   it('opens the palette on tap', () => {
