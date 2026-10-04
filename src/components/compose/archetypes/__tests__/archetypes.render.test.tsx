@@ -61,10 +61,17 @@ describe.each(IDS)('%s archetype — shared behaviour', (id) => {
   });
 
   it('renders an empty palette (while colors are still extracting) without throwing', () => {
-    const { json } = draw(id, { colors: 0 });
+    const { json } = draw(id, { colors: 0, config: { showHex: true, showName: true, showRGB: true } });
 
-    expect(swatches(json, [])).toHaveLength(0);
-    expect(json).toBeTruthy();
+    // the photo placeholder is still drawn...
+    expect(findAll(json, 'SkRect').filter((r) => r.props.color === GREY)).toHaveLength(1);
+    // ...but there are no color blocks, no labels (editorial must not read colors[0].name)
+    expect(findAll(json, 'SkRoundedRect')).toHaveLength(0);
+    expect(findAll(json, 'SkCircle')).toHaveLength(0);
+    expect(findTexts(json)).toEqual([]);
+    // only decoration remains: editorial's transparent gradient host, banner's translucent strip
+    const otherRects = findAll(json, 'SkRect').filter((r) => r.props.color !== GREY).map((r) => r.props.color);
+    otherRects.forEach((c) => expect(['transparent', 'rgba(0,0,0,0.35)']).toContain(c));
   });
 
   it('draws no labels when every label toggle is off', () => {
@@ -80,11 +87,14 @@ describe.each(IDS)('%s archetype — shared behaviour', (id) => {
   });
 
   it('requests a font matching the chosen family', () => {
+    // matchFont is a module-level mock shared by all tests: only count calls from this render
+    (matchFont as jest.Mock).mockClear();
     draw(id, { config: { fontFamily: 'mono' } });
 
-    expect(matchFont).toHaveBeenCalledWith(
-      expect.objectContaining({ fontFamily: expect.stringMatching(/^(Courier|monospace)$/) })
-    );
+    expect(matchFont).toHaveBeenCalled();
+    (matchFont as jest.Mock).mock.calls.forEach(([style]) => {
+      expect(style.fontFamily).toMatch(/^(Courier|monospace)$/);
+    });
   });
 
   it('wraps no label in a blur unless cardStyle is blur', () => {
