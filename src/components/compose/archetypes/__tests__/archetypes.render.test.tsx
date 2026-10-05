@@ -207,8 +207,8 @@ describe('side archetype', () => {
   });
 });
 
-describe('H-04 — fixed five-slot layouts with other palette sizes', () => {
-  // Franja y Banner reparten `width / 5`; Lateral reparte `height / 5`.
+describe('H-04 — Strip, Banner and Side adapt to palette sizes other than 5', () => {
+  // Franja y Banner reparten `width / n`; Lateral reparte `height / n` (n = nº de colores).
   const STRIPS: [ArchetypeId, 'width' | 'height'][] = [
     ['strip', 'width'],
     ['banner', 'width'],
@@ -235,7 +235,7 @@ describe('H-04 — fixed five-slot layouts with other palette sizes', () => {
 
   for (const [id, axis] of STRIPS) {
     for (const size of [3, 8]) {
-      it.failing(`${id} keeps ${size} swatches inside the canvas and filling the strip (H-04)`, () => {
+      it(`${id} keeps ${size} swatches inside the canvas and filling the strip (H-04)`, () => {
         fillsStrip(id, axis, size);
       });
     }

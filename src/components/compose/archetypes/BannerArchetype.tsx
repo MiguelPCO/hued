@@ -10,7 +10,8 @@ import { formatRGB, getContrastTextColor, useArchetypeFonts, wrapMetadataInBlur 
 const STRIP_H = 48;
 
 export function BannerArchetype({ palette, config, width, height, image }: ArchetypeProps) {
-  const barW = width / 5;
+  // One bar per color (palette size is 3–8), so the banner always spans the full width.
+  const barW = width / Math.max(palette.colors.length, 1);
   const stripY = height - STRIP_H;
 
   const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 9, 8);

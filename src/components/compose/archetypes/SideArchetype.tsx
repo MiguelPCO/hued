@@ -10,7 +10,8 @@ import { formatRGB, getContrastTextColor, useArchetypeFonts, wrapMetadataInBlur 
 export function SideArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageW = width * 0.6;
   const sideW = width - imageW;
-  const rowH = height / 5;
+  // One row per color (palette size is 3–8), so the column always spans the full height.
+  const rowH = height / Math.max(palette.colors.length, 1);
 
   const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 8, 7);
 

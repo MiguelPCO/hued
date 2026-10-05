@@ -10,7 +10,8 @@ import { formatRGB, getContrastTextColor, useArchetypeFonts, wrapMetadataInBlur 
 export function StripArchetype({ palette, config, width, height, image }: ArchetypeProps) {
   const imageH = height * 0.7;
   const stripH = height * 0.3;
-  const barW = width / 5;
+  // One bar per color (palette size is 3–8), so the strip always spans the full width.
+  const barW = width / Math.max(palette.colors.length, 1);
 
   const { hexFont, nameFont } = useArchetypeFonts(config.fontFamily, 9, 8);
 
