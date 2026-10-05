@@ -79,9 +79,10 @@ describe('analytics consent, end to end', () => {
   });
 
   it('can be changed later from Settings without asking again', async () => {
-    render(<AnalyticsConsentSheet />);
+    const first = render(<AnalyticsConsentSheet />);
     expect(screen.getByText(TITLE)).toBeOnTheScreen();
     fireEvent.press(screen.getByText('No, gracias'));
+    first.unmount(); // el sheet original desaparece: lo que sigue es un montaje nuevo
     render(<SettingsScreen />);
     await settle();
 
@@ -89,6 +90,10 @@ describe('analytics consent, end to end', () => {
 
     expect(mockPosthog!.optedOut).toBe(false);
     expect(screen.UNSAFE_getByType(Switch).props.value).toBe(true);
+    expect(screen.queryByText(TITLE)).toBeNull();
+
+    render(<AnalyticsConsentSheet />); // un montaje nuevo ya no vuelve a preguntar
+    await settle();
     expect(screen.queryByText(TITLE)).toBeNull();
   });
 

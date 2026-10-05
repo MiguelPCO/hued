@@ -16,9 +16,9 @@ function layoutTrack(width: number) {
   fireEvent(track, 'layout', { nativeEvent: { layout: { width } } });
 }
 
-const grant = (x: number) => act(() => { pan.configs[0].onPanResponderGrant?.(touch(x), gesture()); });
-const move = (dx: number) => act(() => { pan.configs[0].onPanResponderMove?.({} as never, gesture(dx)); });
-const release = () => act(() => { pan.configs[0].onPanResponderRelease?.({} as never, gesture()); });
+const grant = (x: number) => act(() => { pan.live().onPanResponderGrant?.(touch(x), gesture()); });
+const move = (dx: number) => act(() => { pan.live().onPanResponderMove?.({} as never, gesture(dx)); });
+const release = () => act(() => { pan.live().onPanResponderRelease?.({} as never, gesture()); });
 
 describe('PaletteSizeControl — presets and label', () => {
   it('shows the presets and the current count', () => {
@@ -111,7 +111,7 @@ describe('PaletteSizeControl — slider', () => {
     layoutTrack(200);
 
     grant(100);
-    act(() => { pan.configs[0].onPanResponderTerminate?.({} as never, gesture()); });
+    act(() => { pan.live().onPanResponderTerminate?.({} as never, gesture()); });
 
     expect(onChange).toHaveBeenCalledWith(6);
   });

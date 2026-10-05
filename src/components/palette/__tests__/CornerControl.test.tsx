@@ -118,7 +118,7 @@ describe('CornerControl — slider', () => {
     render(<CornerControl presets={PRESETS} value={16} onChange={onChange} />);
     layoutTrack(180);
 
-    act(() => { pan.configs[0].onPanResponderGrant?.(touch(90), gesture()); });
+    act(() => { pan.live().onPanResponderGrant?.(touch(90), gesture()); });
     frame();
 
     expect(onChange).toHaveBeenCalledWith(90);
@@ -130,8 +130,8 @@ describe('CornerControl — slider', () => {
     layoutTrack(180);
 
     act(() => {
-      pan.configs[0].onPanResponderGrant?.(touch(90), gesture());
-      pan.configs[0].onPanResponderMove?.({} as never, gesture(45));
+      pan.live().onPanResponderGrant?.(touch(90), gesture());
+      pan.live().onPanResponderMove?.({} as never, gesture(45));
     });
     frame();
 
@@ -142,14 +142,14 @@ describe('CornerControl — slider', () => {
     const onChange = jest.fn();
     render(<CornerControl presets={PRESETS} value={16} onChange={onChange} />);
     layoutTrack(180);
-    act(() => { pan.configs[0].onPanResponderGrant?.(touch(90), gesture()); });
+    act(() => { pan.live().onPanResponderGrant?.(touch(90), gesture()); });
     frame();
 
-    act(() => { pan.configs[0].onPanResponderMove?.({} as never, gesture(1000)); });
+    act(() => { pan.live().onPanResponderMove?.({} as never, gesture(1000)); });
     frame();
     expect(onChange).toHaveBeenLastCalledWith(180);
 
-    act(() => { pan.configs[0].onPanResponderMove?.({} as never, gesture(-1000)); });
+    act(() => { pan.live().onPanResponderMove?.({} as never, gesture(-1000)); });
     frame();
     expect(onChange).toHaveBeenLastCalledWith(0);
   });
@@ -160,9 +160,9 @@ describe('CornerControl — slider', () => {
     layoutTrack(180);
 
     act(() => {
-      pan.configs[0].onPanResponderGrant?.(touch(0), gesture());
-      pan.configs[0].onPanResponderMove?.({} as never, gesture(18));
-      pan.configs[0].onPanResponderMove?.({} as never, gesture(36));
+      pan.live().onPanResponderGrant?.(touch(0), gesture());
+      pan.live().onPanResponderMove?.({} as never, gesture(18));
+      pan.live().onPanResponderMove?.({} as never, gesture(36));
     });
     frame();
 
@@ -174,7 +174,7 @@ describe('CornerControl — slider', () => {
     const onChange = jest.fn();
     render(<CornerControl presets={PRESETS} value={16} onChange={onChange} />);
 
-    act(() => { pan.configs[0].onPanResponderGrant?.(touch(50), gesture()); });
+    act(() => { pan.live().onPanResponderGrant?.(touch(50), gesture()); });
     frame();
 
     expect(onChange).not.toHaveBeenCalled();
@@ -185,7 +185,7 @@ describe('CornerControl — slider', () => {
     const { unmount } = render(<CornerControl presets={PRESETS} value={16} onChange={onChange} />);
     layoutTrack(180);
 
-    act(() => { pan.configs[0].onPanResponderGrant?.(touch(90), gesture()); });
+    act(() => { pan.live().onPanResponderGrant?.(touch(90), gesture()); });
     unmount();
     frame();
 
@@ -201,7 +201,7 @@ describe('CornerControl — slider', () => {
     layoutTrack(180);
     rerender(<CornerControl presets={PRESETS} value={16} onChange={latest} />);
 
-    act(() => { pan.configs[0].onPanResponderGrant?.(touch(90), gesture()); });
+    act(() => { pan.live().onPanResponderGrant?.(touch(90), gesture()); });
     frame();
 
     expect(latest).toHaveBeenCalledWith(90);

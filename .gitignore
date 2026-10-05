@@ -56,3 +56,5 @@ yarn-error.*
 
 # Git worktrees (per-task isolated workspaces)
 .worktrees/
+
+coverage/

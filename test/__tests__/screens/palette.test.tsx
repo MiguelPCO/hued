@@ -114,12 +114,19 @@ describe('PaletteScreen — loading', () => {
 
   // H-07: `getPalette(id).then(...)` no tiene `catch`/`finally`: si la base de datos falla,
   // `setLoading(false)` no llega a ejecutarse y la pantalla queda en spinner para siempre.
-  // Se simula con un thenable que nunca invoca el callback (mismo efecto visible que un
-  // rechazo, sin disparar un `unhandledRejection` que rompería el worker de Jest).
+  // Se simula con un thenable que entrega el fallo solo por el manejador de rechazo que reciba:
+  // con el `.then(cb)` actual no hay ninguno (sin `unhandledRejection` que rompa el worker de
+  // Jest) y el spinner se queda; con `await` + `finally` o `.then(cb, onErr)` el fallo llega al
+  // manejador y el test pasa a fallar ("expected to fail"), señal de que H-07 está arreglado.
   // La aserción no depende del texto que muestre un arreglo: solo exige que el spinner se vaya.
   it.failing('leaves the spinner when the database fails (H-07)', async () => {
     searchParamsMock.mockReturnValue({ id: 'p1' });
-    (getPalette as jest.Mock).mockReturnValue({ then: () => Promise.resolve() });
+    (getPalette as jest.Mock).mockReturnValue({
+      then: (_ok: unknown, fail?: (e: Error) => void) => {
+        fail?.(new Error('db'));
+        return Promise.resolve();
+      },
+    });
 
     render(<PaletteScreen />);
     await settle();
