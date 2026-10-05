@@ -1,68 +1,52 @@
 # Hallazgos de la suite de tests
 
-Fecha: 2026-10-05 · Suite: `pnpm test` / `pnpm test:ci` · Cada hallazgo abierto está fijado con un `it.failing` que referencia su ID.
-Cuando se corrija un bug, su test pasará a fallar con "expected to fail but passed": convertirlo en `it` normal y marcar el hallazgo como corregido.
+Fecha: 2026-10-05 · Suite: `pnpm test` / `pnpm test:ci`.
+La suite encontró 9 bugs (H-01 a H-09). Cada uno se fijó con un `it.failing` que referencia su ID; al corregirlo, el `it.failing` pasa a `it` normal y queda como regresión. Hoy 8 están corregidos y 1 abierto (H-03, necesita la URL pública real).
 
 ## Resumen
 
-| ID | Severidad | Área | Resumen | Test |
+| ID | Severidad | Área | Resumen | Estado |
 |---|---|---|---|---|
-| H-04 | Alta | Arquetipos | Franja, Banner y Lateral hardcodean 5 ranuras: con 3 colores quedan huecos y con 8 se salen del lienzo | `archetypes.render.test.tsx` |
-| H-03 | Alta | Legal | `PRIVACY_URL` es el marcador `[RELLENAR: …]`; Ajustes y paywall la pasan a `Linking.openURL` | `legal.test.ts` |
-| H-07 | Media | Pantalla de paleta | Si `getPalette` falla, spinner infinito | `palette.test.tsx` |
-| H-08 | Media | Inicio | Si `listPalettes` falla, spinner infinito | `index.test.tsx` |
-| H-02 | Media | Navegación | `app/_layout.tsx` registra `onboarding` y no existe `app/onboarding.tsx` | `layouts.test.tsx` |
-| H-09 | ~~Media~~ Corregido | Controles | `PaletteSizeControl` y `CornerControl` usaban el `onChange`/`disabled` del primer render durante el arrastre | `PaletteSizeControl.test.tsx`, `CornerControl.test.tsx` (ahora `it` normales) |
-| H-05 | Baja | Accesibilidad | `textTertiary` y `error` sobre `bgPrimary` no llegan a contraste AA (3,55:1 y 3,68:1) | `tokens.test.ts` |
-| H-06 | Baja | Suscripción | El contador diario de exportaciones se reinicia a medianoche UTC, no local | `settingsStore.timezone.test.ts` |
-| H-01 | Baja | UI | `Button` descarta la prop `style` | `Button.test.tsx` |
+| H-03 | Alta | Legal | `PRIVACY_URL` es el marcador `[RELLENAR: …]`; Ajustes y paywall la pasan a `Linking.openURL` | **Abierto** (`it.failing` en `legal.test.ts`) |
+| H-04 | Alta | Arquetipos | Franja, Banner y Lateral hardcodeaban 5 ranuras: con 3 colores quedaban huecos y con 8 se salían del lienzo | Corregido |
+| H-07 | Media | Pantalla de paleta | Si `getPalette` fallaba, spinner infinito | Corregido |
+| H-08 | Media | Inicio | Si `listPalettes` fallaba, spinner infinito | Corregido |
+| H-02 | Media | Navegación | `app/_layout.tsx` registraba `onboarding` sin existir `app/onboarding.tsx` | Corregido |
+| H-09 | Media | Controles | `PaletteSizeControl` y `CornerControl` usaban el `onChange`/`disabled` del primer render durante el arrastre | Corregido |
+| H-05 | Baja | Accesibilidad | `textTertiary` y `error` sobre `bgPrimary` no llegaban a contraste AA (3,55:1 y 3,68:1) | Corregido |
+| H-06 | Baja | Suscripción | El contador diario de exportaciones se reiniciaba a medianoche UTC, no local | Corregido |
+| H-01 | Baja | UI | `Button` descartaba la prop `style` | Corregido |
 
-## Detalle
-
-### H-04 — Arquetipos de 5 ranuras con paletas de 3 u 8 colores · Alta
-- **Qué pasa:** `StripArchetype` y `BannerArchetype` calculan `barW = width / 5`; `SideArchetype`, `rowH = height / 5`. `Grid` sí se generalizó (`computeGridCells`).
-- **Impacto:** con 8 colores, Franja dibuja 8 barras de 72 px: la octava empieza en x = 504 y la tira llega hasta x = 576 (7·72 + 72) en un lienzo de 360, así que las barras 6–8 (x ≥ 360) caen fuera del lienzo; con 3, el 40 % de la franja queda vacío. Se ve en pantalla y en el PNG exportado.
-- **Evidencia:** `it.failing` ×6 en `archetypes.render.test.tsx` (3 arquetipos × tamaños 3 y 8); los equivalentes con 5 colores pasan.
-- **Sugerencia:** repartir por `palette.colors.length` (como `computeGridCells`) y extraer un `computeBarCells(n, width, height, axis)` testeable.
+## Abierto
 
 ### H-03 — Política de privacidad sin URL · Alta
 - **Qué pasa:** `src/lib/legal.ts` exporta `PRIVACY_URL = '[RELLENAR: URL pública de legal/privacidad.md]'`.
 - **Impacto:** en Ajustes y paywall el enlace no abre nada útil (en iOS `openURL` rechaza la promesa); App Store (5.1.1) y Google Play exigen una política pública antes de publicar.
-- **Evidencia:** `legal.test.ts › PRIVACY_URL is a public https URL`.
-- **Sugerencia:** publicar `legal/privacidad.md` (p. ej. GitHub Pages) y poner la URL real.
+- **Evidencia:** `legal.test.ts › PRIVACY_URL is a public https URL` (`it.failing`).
+- **Cómo cerrarlo:** publicar `legal/privacidad.md` (p. ej. GitHub Pages), poner la URL real en `legal.ts` y pasar el `it.failing` a `it`.
 
-### H-07 / H-08 — Spinner infinito si la base de datos falla · Media
-- **Qué pasa:** `app/palette/[id].tsx` hace `getPalette(id).then(...)` sin `catch`/`finally`; `app/(tabs)/index.tsx` captura el error pero no cambia `hasPalettes` (queda `null`).
-- **Impacto:** un fallo de SQLite deja la pantalla cargando para siempre, sin mensaje ni reintento (en la pantalla de paleta, además, un rechazo sin capturar).
-- **Evidencia:** `palette.test.tsx › leaves the spinner when the database fails`; `index.test.tsx › leaves the spinner…`. Cada uno tiene un test normal "guarda" que fija los estados vecinos, para que el `it.failing` no pase por un fallo ajeno.
-- **Sugerencia:** `finally { setLoading(false) }` y un estado de error con botón "Reintentar".
-- **Cómo lo detectan los tests:** el de H-07 simula el fallo con un thenable que entrega el error al manejador de rechazo que reciba (`await` + `finally` o `.then(cb, onErr)` lo reciben; el `.then(cb)` actual no). El de H-08 usa `mockRejectedValue`. Ambos pasan a fallar con esas variantes de arreglo.
-- **Al corregir:** el criterio correcto es que no quede ningún `ActivityIndicator` en pantalla. El `it.failing` de H-08 solo comprueba que aparece el texto "Hued"; si el arreglo muestra un estado de error sin ese texto, reescribir la aserción como "no queda `ActivityIndicator`" en vez de adaptar el arreglo al test.
+## Corregidos
 
-### H-02 — Ruta `onboarding` inexistente · Media
-- **Qué pasa:** `app/_layout.tsx` declara `<Stack.Screen name="onboarding" … />`; no hay `app/onboarding.tsx`.
-- **Impacto:** expo-router avisa de la ruta inexistente; el onboarding previsto (y el momento natural para pedir el consentimiento) no existe.
-- **Evidencia:** `layouts.test.tsx › every registered Stack.Screen has a route file`.
-- **Sugerencia:** crear la pantalla o quitar el registro hasta entonces.
-- **Al corregir:** el test normal que fija el helper `routeFileExists` en el mismo archivo (3 rutas fijas y `onboarding` ausente) también habrá que actualizarlo.
+### H-01 — `Button` ignoraba `style`
+`Button` aplica ahora `style` (objeto o función `({ pressed }) => …`) después de los estilos propios, así que el llamador puede sobrescribirlos. Tests en `Button.test.tsx`.
 
-### H-09 — Closures obsoletos en los controles deslizantes · Corregido
-- **Qué pasaba:** `useRef(PanResponder.create({...}))` conservaba los handlers del primer render, así que tras un cambio de props el arrastre seguía llamando al `onChange` antiguo, y `PaletteSizeControl` respetaba el `disabled` antiguo (arrastraba mientras se re-extraía la paleta).
-- **Corrección:** `CornerControl` y `PaletteSizeControl` leen `onChange` (y `disabled`) de refs actualizados en cada render; el responder se crea una sola vez con `useState(() => …)`.
-- **Tests:** los 3 `it.failing` pasaron a `it` normales (`CornerControl.test.tsx`, `PaletteSizeControl.test.tsx`) y quedan como regresión. `pan.live()` en `test/panResponder.ts` sigue leyendo los handlers del View del render actual.
+### H-02 — Ruta `onboarding` inexistente
+Se quitó `<Stack.Screen name="onboarding" />` de `app/_layout.tsx` hasta que exista la pantalla (el estado `onboardingCompleted` de `settingsStore` se mantiene). `layouts.test.tsx` comprueba que toda `Stack.Screen` registrada tiene archivo de ruta y fija el helper `routeFileExists`. Cuando se cree el onboarding, registrar la ruta y añadirla a ese test.
 
-### H-05 — Contraste insuficiente · Baja
-- `Colors.textTertiary` (#8A6F5C) sobre `bgPrimary` (#FDDCA9) = 3,55:1 ("Añadir nombre" en Ajustes); `Colors.error` (#DC2626) sobre `bgPrimary` = 3,68:1 (mensajes de error). Ambos < 4,5:1.
-- `Colors.textPlaceholder` es también `brown500`, el mismo color que `textTertiary`, así que comparte el fallo.
-- **Sugerencia:** oscurecer `brown500` y `error500` para texto, o usar `brown700`/un rojo más oscuro en esos casos.
+### H-04 — Arquetipos de 5 ranuras
+`StripArchetype` y `BannerArchetype` reparten `width / colors.length` y `SideArchetype` `height / colors.length` (mínimo 1 para la paleta vacía). `archetypes.render.test.tsx` cubre 3 arquetipos × tamaños 3 y 8, y la paridad vista previa/exportación sigue verde. **Pendiente de revisión visual en dispositivo:** con 8 colores las barras de Franja miden 45 px y las de Banner 45 px de ancho; comprobar que caben el hex y el nombre.
 
-### H-06 — Reinicio del contador a medianoche UTC · Baja
-- `settingsStore.todayString()` usa `toISOString()`. En España (UTC+1/+2) el contador se reinicia a la 01:00–02:00 locales, no a medianoche.
-- **Sugerencia:** construir la fecha local (`getFullYear/getMonth/getDate`).
-- **Al corregir:** las aserciones de los tests de integración `exportGate` y `captureToExport`, y las de `test/__tests__/screens/palette.test.tsx` (su `today()` y el `beforeEach` usan la fecha UTC; los tests del límite diario fallarán 1–2 h al día), que comparan con `new Date().toISOString().slice(0, 10)` pasarán a fallar entre 1 y 2 h al día (cuando fecha local y UTC difieren); hay que construirlas con la misma fecha local.
+### H-05 — Contraste
+`brown500` pasa de #8A6F5C a #755E4E (4,61:1 sobre `bgPrimary`) y `error500` de #DC2626 a #BF2121 (4,63:1). `textPlaceholder` comparte `brown500` y también se cubre. **Decisión de diseño a validar:** el nuevo `error` queda muy cerca de `red500` (el rojo de la marca, #C21717); cualquier rojo que cumpla AA sobre `cream200` cae ahí. Alternativa: dejar `error` como estaba para iconos y usar el rojo oscuro solo para texto.
 
-### H-01 — `Button` ignora `style` · Baja
-- `style` se extrae de las props y nunca se aplica; hoy ningún llamador lo pasa, pero la API lo admite (`PressableProps`).
+### H-06 — Reinicio del contador a medianoche UTC
+`settingsStore.todayString()` construye ahora la fecha local (`getFullYear/getMonth/getDate`). Los tests que comparan con "hoy" usan `toLocaleDateString('en-CA')`, independiente de la implementación. `settingsStore.timezone.test.ts` fija el caso 22:30Z (00:30 locales del día siguiente) y el inverso. Los contadores guardados con fecha UTC pueden reiniciarse un día antes una sola vez al actualizar.
+
+### H-07 / H-08 — Spinner infinito si falla la base de datos
+La pantalla de paleta (`getPalette`) y el inicio (`listPalettes`) muestran ahora "No se pudo cargar la paleta." / "No se pudieron cargar tus paletas." con botón "Reintentar", y avisan a Sentry. En el inicio, si ya había datos cargados y una recarga posterior falla, se conservan los datos y solo se avisa a Sentry. Tests de fallo y de recuperación tras reintentar en `palette.test.tsx` e `index.test.tsx`.
+
+### H-09 — Closures obsoletos en los controles deslizantes
+`CornerControl` y `PaletteSizeControl` leen `onChange` (y `disabled`) de refs actualizados en cada render; el responder se crea una vez con `useState(() => …)`. Los 3 tests (`CornerControl.test.tsx`, `PaletteSizeControl.test.tsx`) quedan como regresión; `pan.live()` en `test/panResponder.ts` lee los handlers del View del render actual.
 
 ## Mejoras y observaciones
 
