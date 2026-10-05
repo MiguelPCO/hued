@@ -21,7 +21,7 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 
 ### H-04 — Arquetipos de 5 ranuras con paletas de 3 u 8 colores · Alta
 - **Qué pasa:** `StripArchetype` y `BannerArchetype` calculan `barW = width / 5`; `SideArchetype`, `rowH = height / 5`. `Grid` sí se generalizó (`computeGridCells`).
-- **Impacto:** con 8 colores, Franja dibuja hasta x = 504 en un lienzo de 360 (muestras recortadas); con 3, el 40 % de la franja queda vacío. Se ve en pantalla y en el PNG exportado.
+- **Impacto:** con 8 colores, Franja dibuja 8 barras de 72 px: la octava empieza en x = 504 y la tira llega hasta x = 576 (7·72 + 72) en un lienzo de 360, así que las barras 6–8 (x ≥ 360) caen fuera del lienzo; con 3, el 40 % de la franja queda vacío. Se ve en pantalla y en el PNG exportado.
 - **Evidencia:** `it.failing` ×6 en `archetypes.render.test.tsx` (3 arquetipos × tamaños 3 y 8); los equivalentes con 5 colores pasan.
 - **Sugerencia:** repartir por `palette.colors.length` (como `computeGridCells`) y extraer un `computeBarCells(n, width, height, axis)` testeable.
 
@@ -36,6 +36,7 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 - **Impacto:** un fallo de SQLite deja la pantalla cargando para siempre, sin mensaje ni reintento (en la pantalla de paleta, además, un rechazo sin capturar).
 - **Evidencia:** `palette.test.tsx › leaves the spinner when the database fails`; `index.test.tsx › leaves the spinner…`. Cada uno tiene un test normal "guarda" que fija los estados vecinos, para que el `it.failing` no pase por un fallo ajeno.
 - **Sugerencia:** `finally { setLoading(false) }` y un estado de error con botón "Reintentar".
+- **Cómo lo detectan los tests:** el de H-07 simula el fallo con un thenable que entrega el error al manejador de rechazo que reciba (`await` + `finally` o `.then(cb, onErr)` lo reciben; el `.then(cb)` actual no). El de H-08 usa `mockRejectedValue`. Ambos pasan a fallar con esas variantes de arreglo.
 - **Al corregir:** el criterio correcto es que no quede ningún `ActivityIndicator` en pantalla. El `it.failing` de H-08 solo comprueba que aparece el texto "Hued"; si el arreglo muestra un estado de error sin ese texto, reescribir la aserción como "no queda `ActivityIndicator`" en vez de adaptar el arreglo al test.
 
 ### H-02 — Ruta `onboarding` inexistente · Media
@@ -51,6 +52,7 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 - **Impacto probable (deducido del código; los tests solo fijan la causa):** en `PaletteSizeControl`, el padre (`handlePaletteSizeChange`) depende de `palette`; tras la primera extracción, arrastrar de nuevo llama a la versión antigua, cuyo `palette.colors.length` obsoleto puede tratar como "sin cambios" un tamaño legítimo (p. ej. volver a 5 tras pasar a 3), dejando el control mostrando un valor que la paleta no tiene. `CornerControl` tiene el mismo patrón (latente hoy).
 - **Evidencia:** 3 `it.failing` con ID H-09 (`onChange` obsoleto en ambos controles; `PaletteSizeControl` arrastra aunque esté `disabled`).
 - **Sugerencia:** guardar `onChange`/`disabled` en refs actualizados en cada render, o crear el responder con `useMemo` dependiente de ellos.
+- **Al corregir:** los `it.failing` leen los handlers del View que los lleva en el render actual (`pan.live()` en `test/panResponder.ts`), no `configs[0]`; por eso pasan a fallar ("Failing test passed…") tanto con la variante de refs como con la de `useMemo`. Quitar entonces `.failing` en los 3 tests.
 - **Relación con el lint:** son los mismos sitios que marca `react-hooks/refs` (ver "Mejoras y observaciones").
 
 ### H-05 — Contraste insuficiente · Baja
@@ -61,7 +63,7 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 ### H-06 — Reinicio del contador a medianoche UTC · Baja
 - `settingsStore.todayString()` usa `toISOString()`. En España (UTC+1/+2) el contador se reinicia a la 01:00–02:00 locales, no a medianoche.
 - **Sugerencia:** construir la fecha local (`getFullYear/getMonth/getDate`).
-- **Al corregir:** las aserciones de los tests de integración `exportGate` y `captureToExport` que comparan con `new Date().toISOString().slice(0, 10)` pasarán a fallar entre 1 y 2 h al día (cuando fecha local y UTC difieren); hay que construirlas con la misma fecha local.
+- **Al corregir:** las aserciones de los tests de integración `exportGate` y `captureToExport`, y las de `test/__tests__/screens/palette.test.tsx` (su `today()` y el `beforeEach` usan la fecha UTC; los tests del límite diario fallarán 1–2 h al día), que comparan con `new Date().toISOString().slice(0, 10)` pasarán a fallar entre 1 y 2 h al día (cuando fecha local y UTC difieren); hay que construirlas con la misma fecha local.
 
 ### H-01 — `Button` ignora `style` · Baja
 - `style` se extrae de las props y nunca se aplica; hoy ningún llamador lo pasa, pero la API lo admite (`PressableProps`).
@@ -84,7 +86,7 @@ Sin `it.failing`, para decidir:
 | src/lib | 98,00 % | 90,10 % | 94,64 % | 90 % |
 | src/components | 98,25 % | 96,13 % | 95,57 % | 75 % |
 | app | 96,04 % | 87,85 % | 87,98 % | 60 % |
-| Total | 97,63 % | 92,29 % | 93,37 % | — |
+| Total | 97,63 % | 92,28 % | 93,37 % | — |
 
 Cifras agregadas por carpeta (suma de todos los ficheros bajo cada ruta de `coverageThreshold`). Todas superan los objetivos del spec, así que los umbrales se fijaron en ellos y no hizo falta bajar ninguno. Umbrales completos (líneas / sentencias / funciones / ramas): `src/lib` 90/90/85/80, `src/components` 75/75/70/65, `app` 60/60/55/50.
 
