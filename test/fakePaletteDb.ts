@@ -20,11 +20,18 @@ export function seedPalette(palette: Palette): void {
   rows.set(palette.id, JSON.stringify(palette));
 }
 
+// Como los UPDATE reales (`updated_at = Date.now()`).
 function update(id: string, change: (p: Palette) => void): void {
   const palette = peekPalette(id);
   if (!palette) return;
   change(palette);
+  palette.updatedAt = Date.now();
   seedPalette(palette);
+}
+
+// Como `rowToPalette`: los campos de layout que no existían al guardar se rellenan con los defaults.
+function withDefaults(palette: Palette): Palette {
+  return { ...palette, layoutConfig: { ...DEFAULT_LAYOUT_CONFIG, ...palette.layoutConfig } };
 }
 
 interface SaveParams {
@@ -59,11 +66,14 @@ export const savePalette = jest.fn(async (params: SaveParams): Promise<Palette> 
 export const getPalette = jest.fn(async (id: string): Promise<Palette | null> => {
   const palette = peekPalette(id);
   if (!palette) return null;
-  return { ...palette, layoutConfig: { ...DEFAULT_LAYOUT_CONFIG, ...palette.layoutConfig } };
+  return withDefaults(palette);
 });
 
+// `ORDER BY created_at DESC`.
 export const listPalettes = jest.fn(async (): Promise<Palette[]> =>
-  [...rows.values()].map((raw) => JSON.parse(raw) as Palette)
+  [...rows.values()]
+    .map((raw) => withDefaults(JSON.parse(raw) as Palette))
+    .sort((a, b) => b.createdAt - a.createdAt)
 );
 
 export const updatePaletteColors = jest.fn(async (id: string, colors: ExtractedColor[]) => {
