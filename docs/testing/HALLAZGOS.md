@@ -83,12 +83,12 @@ Sin `it.failing`, para decidir:
 
 | Carpeta | Líneas | Funciones | Ramas | Umbral de líneas |
 |---|---|---|---|---|
-| src/lib | 98,00 % | 90,10 % | 94,64 % | 90 % |
-| src/components | 98,25 % | 96,13 % | 95,57 % | 75 % |
-| app | 96,04 % | 87,85 % | 87,98 % | 60 % |
+| src/lib | 98,00 % | 90,10 % | 94,64 % | 96 % |
+| src/components | 98,25 % | 96,13 % | 95,57 % | 96 % |
+| app | 96,04 % | 87,85 % | 87,98 % | 94 % |
 | Total | 97,63 % | 92,28 % | 93,37 % | — |
 
-Cifras agregadas por carpeta (suma de todos los ficheros bajo cada ruta de `coverageThreshold`). Todas superan los objetivos del spec, así que los umbrales se fijaron en ellos y no hizo falta bajar ninguno. Umbrales completos (líneas / sentencias / funciones / ramas): `src/lib` 90/90/85/80, `src/components` 75/75/70/65, `app` 60/60/55/50.
+Cifras agregadas por carpeta (suma de todos los ficheros bajo cada ruta de `coverageThreshold`). Los umbrales se fijan en `floor(medido) - 2` para que el CI detecte cualquier caída real de cobertura sin saltar por ruido. Umbrales completos (líneas / sentencias / funciones / ramas): `src/lib` 96/95/88/92, `src/components` 96/95/94/93, `app` 94/90/85/85. Los objetivos iniciales del spec (90/75/60 de líneas) ya se superaban de sobra.
 
 La paridad entre vista previa y exportación (`exportPalette.parity.test.tsx`) cubre tanto la rama de marcador de posición como la de foto cargada.
 

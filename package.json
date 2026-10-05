@@ -93,9 +93,9 @@
       "!src/components/test/**"
     ],
     "coverageThreshold": {
-      "./src/lib/": { "lines": 90, "statements": 90, "functions": 85, "branches": 80 },
-      "./src/components/": { "lines": 75, "statements": 75, "functions": 70, "branches": 65 },
-      "./app/": { "lines": 60, "statements": 60, "functions": 55, "branches": 50 }
+      "./src/lib/": { "lines": 96, "statements": 95, "functions": 88, "branches": 92 },
+      "./src/components/": { "lines": 96, "statements": 95, "functions": 94, "branches": 93 },
+      "./app/": { "lines": 94, "statements": 90, "functions": 85, "branches": 85 }
     },
     "testPathIgnorePatterns": [
       "/node_modules/",
