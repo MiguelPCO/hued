@@ -28,7 +28,7 @@ describe('rgbToHsl — hues', () => {
     ['blue', [0, 0, 255], 240],
     ['magenta', [255, 0, 255], 300],
     ['rose (red with some blue)', [255, 0, 128], 330],
-  ] as Array<[string, [number, number, number], number]>)('%s has hue %i°', (_name, [r, g, b], hue) => {
+  ] as [string, [number, number, number], number][])('%s has hue %i°', (_name, [r, g, b], hue) => {
     expect(rgbToHsl(r, g, b)[0]).toBeCloseTo(hue, 0);
   });
 
@@ -58,7 +58,7 @@ describe('rgbToLab — reference colors (sRGB, D65)', () => {
     ['red', [255, 0, 0], [53.24, 80.09, 67.2]],
     ['green', [0, 255, 0], [87.74, -86.18, 83.18]],
     ['blue', [0, 0, 255], [32.3, 79.19, -107.86]],
-  ] as Array<[string, [number, number, number], [number, number, number]]>)('%s', (_name, [r, g, b], expected) => {
+  ] as [string, [number, number, number], [number, number, number]][])('%s', (_name, [r, g, b], expected) => {
     const lab = rgbToLab(r, g, b);
 
     expected.forEach((value, i) => expect(lab[i]).toBeCloseTo(value, 0));

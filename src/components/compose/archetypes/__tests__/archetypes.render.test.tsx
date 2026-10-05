@@ -209,7 +209,7 @@ describe('side archetype', () => {
 
 describe('H-04 — fixed five-slot layouts with other palette sizes', () => {
   // Franja y Banner reparten `width / 5`; Lateral reparte `height / 5`.
-  const STRIPS: Array<[ArchetypeId, 'width' | 'height']> = [
+  const STRIPS: [ArchetypeId, 'width' | 'height'][] = [
     ['strip', 'width'],
     ['banner', 'width'],
     ['side', 'height'],

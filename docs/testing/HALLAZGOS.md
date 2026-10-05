@@ -72,7 +72,7 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 
 Sin `it.failing`, para decidir:
 
-- **Lint en rojo antes de la suite:** `pnpm lint` falla con 19 errores y 17 advertencias (14 autocorregibles) sobre el código previo. Los errores son sobre todo `react-hooks/refs` ("Cannot access refs during render") en `Sheet.tsx`, `CornerControl.tsx`, `PaletteSizeControl.tsx` y `LibreEditOverlay.tsx`, más `app/(tabs)/index.tsx`, `CameraView.tsx` y `CropTab.tsx`. Por eso `test:ci` no incluye lint (`typecheck` + `jest --coverage --ci`).
+- **Lint (resuelto el 2026-10-05):** `pnpm lint` tenía 19 errores y 17 advertencias sobre el código previo (la suite sumó más advertencias). Ahora pasa con `--max-warnings 0` y `test:ci` lo incluye (`typecheck` + `lint` + `jest --coverage --ci`). `react-hooks/refs` marca `PanResponder.create` con refs leídos solo dentro de los gestos (falso positivo): se desactiva en esa línea con justificación en `CornerControl`, `PaletteSizeControl` y `LibreEditOverlay`; el responder de los dos controles se crea ahora con `useState(() => …)`. `Sheet` crea sus `Animated.Value` con `useState`; el inicio y `CornerControl` dejaron de llamar a `setState` dentro de un efecto. En tests: `eslint.config.js` desactiva `no-require-imports`, `import/first` y `no-dynamic-env-var` bajo `__tests__/` y `test/` (convenciones de `jest.mock`). H-09 sigue sin corregir: el lint no lo detecta.
 - **Paywall:** el `label` "Procesando..." nunca se ve: `Button` sustituye la etiqueta por un spinner cuando `loading`.
 - **Inicio:** en `handleGallery`, `if (picking) return` es inalcanzable desde la UI.
 - `ArchetypeId` se declara en tres sitios (`@/types/palette`, `settingsStore.ts`, `analytics/events.ts` con `string`).

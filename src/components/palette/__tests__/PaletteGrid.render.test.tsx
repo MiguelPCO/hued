@@ -7,7 +7,7 @@ import { PaletteGrid } from '../PaletteGrid';
 
 jest.mock('@/lib/db/palettes', () => ({ listPalettes: jest.fn() }));
 
-let mockCards: Array<Record<string, any>> = [];
+let mockCards: Record<string, any>[] = [];
 jest.mock('../PaletteCard', () => {
   const { createElement } = require('react');
   const { Text } = require('react-native');

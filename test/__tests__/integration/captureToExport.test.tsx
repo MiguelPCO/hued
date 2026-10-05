@@ -6,7 +6,6 @@ import { trackEvent } from '@/lib/analytics/events';
 import { processCapture } from '@/lib/capture/processCapture';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import PaletteScreen from '@app/palette/[id]';
-import { makeColors } from '@test/factories';
 import { peekPalette, resetFakePaletteDb } from '@test/fakePaletteDb';
 import { resetRouterMocks, searchParamsMock } from '@test/router';
 import { findAll, treeSignature } from '@test/skiaTree';

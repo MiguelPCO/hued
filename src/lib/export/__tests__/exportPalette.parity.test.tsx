@@ -18,7 +18,7 @@ const fs = FileSystem as jest.Mocked<typeof FileSystem>;
 const palette = makePalette({ colors: makeColors(5) });
 const IDS = Object.keys(ARCHETYPES) as ArchetypeId[];
 
-const CONFIGS: Array<[string, Partial<LayoutConfig>]> = [
+const CONFIGS: [string, Partial<LayoutConfig>][] = [
   ['defaults', {}],
   ['outlined with RGB labels', { cardStyle: 'outlined', showRGB: true }],
   ['blur, pill corners, serif', { cardStyle: 'blur', cornerRadius: PILL_CORNER_RADIUS, fontFamily: 'serif' }],

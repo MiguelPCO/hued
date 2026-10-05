@@ -1,4 +1,4 @@
-import { Skia, ColorType, AlphaType } from '@shopify/react-native-skia';
+import { Skia } from '@shopify/react-native-skia';
 import { extractColors, ExtractError } from '../extract';
 
 jest.mock('@shopify/react-native-skia', () => ({

@@ -2,7 +2,7 @@ import { findColorName } from '../colorNames';
 import { rgbToLab } from '../colorMath';
 
 describe('findColorName', () => {
-  const cases: Array<{ label: string; rgb: [number, number, number]; expected: string }> = [
+  const cases: { label: string; rgb: [number, number, number]; expected: string }[] = [
     { label: 'pure red', rgb: [255, 0, 0], expected: 'Candy Apple Red' },
     { label: 'pure green', rgb: [0, 255, 0], expected: 'Acid' },
     { label: 'pure blue', rgb: [0, 0, 255], expected: 'Blue' },

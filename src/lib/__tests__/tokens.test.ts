@@ -37,7 +37,7 @@ describe('Semantic colors', () => {
 });
 
 describe('WCAG contrast', () => {
-  const AA_PAIRS: Array<[string, ColorKey, ColorKey]> = [
+  const AA_PAIRS: [string, ColorKey, ColorKey][] = [
     ['textPrimary on bgPrimary', 'textPrimary', 'bgPrimary'],
     ['textSecondary on bgPrimary', 'textSecondary', 'bgPrimary'],
     ['textPrimary on bgElevated', 'textPrimary', 'bgElevated'],

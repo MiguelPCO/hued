@@ -88,7 +88,7 @@ describe('ArchetypeCanvas — content', () => {
   it.each([
     ['strip', 315],
     ['side', 450],
-  ] as Array<[ArchetypeId, number]>)('dispatches to the %s archetype by id', (archetypeId, photoHeight) => {
+  ] as [ArchetypeId, number][])('dispatches to the %s archetype by id', (archetypeId, photoHeight) => {
     const { json } = mount({ archetypeId });
 
     const photo = findAll(json, 'SkRect').find((r) => r.props.color === '#E5E5E5')!;

@@ -211,7 +211,7 @@ describe('EditTabs — Tipografía, Esquinas, Estilo', () => {
     ['banner', true],
     ['side', false],
     ['libre', false],
-  ] as Array<[ArchetypeId, boolean]>)('%s: "Difuminado" available = %s', (archetypeId, available) => {
+  ] as [ArchetypeId, boolean][])('%s: "Difuminado" available = %s', (archetypeId, available) => {
     setup({ config: makeLayoutConfig({ archetypeId }) });
     openTab('Estilo');
 

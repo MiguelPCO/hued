@@ -119,7 +119,7 @@ Each sprint has day-by-day tasks with EOD checks, acceptance criteria, and defin
 
 ## Testing
 
-- `pnpm test` (rápido), `pnpm test:coverage` (con umbrales), `pnpm test:ci` (typecheck + cobertura).
+- `pnpm test` (rápido), `pnpm test:coverage` (con umbrales), `pnpm test:ci` (typecheck + lint + cobertura).
 - Jest + `jest-expo` + `@testing-library/react-native` v13. Zona horaria fija `Europe/Madrid` (`test/globalSetup.js`).
 - `test/setup.ts` mockea Skia (como *host elements* `Sk*`), MMKV, SQLite, sistema de archivos, RevenueCat, PostHog, Sentry y `expo-router`. Un test puede sobrescribir cualquier mock con su propio `jest.mock`.
 - Helpers en `test/`: `factories`, `skiaTree` (`findAll`, `findTexts`, `treeSignature`), `router`, `panResponder`, `fakePaletteDb`. Alias `@test/*` y `@app/*`.

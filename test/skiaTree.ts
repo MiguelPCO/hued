@@ -3,7 +3,7 @@
 export interface HostNode {
   type: string;
   props: Record<string, unknown>;
-  children: Array<HostNode | string> | null;
+  children: (HostNode | string)[] | null;
 }
 
 function asNodes(json: unknown): HostNode[] {

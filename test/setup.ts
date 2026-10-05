@@ -3,7 +3,7 @@
 import '@testing-library/react-native';
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __HUED_MMKV__: Map<string, string> | undefined;
 }
 
