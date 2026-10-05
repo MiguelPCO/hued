@@ -22,7 +22,8 @@ jest.mock('@/lib/color/extract', () => ({
 }));
 
 const media = MediaLibrary as jest.Mocked<typeof MediaLibrary>;
-const today = () => new Date().toISOString().slice(0, 10);
+// Local calendar day, computed independently of the store (en-CA formats as YYYY-MM-DD).
+const today = () => new Date().toLocaleDateString('en-CA');
 
 // Drains the promise chains the screen starts (several awaits deep) inside act().
 const settle = async () => {

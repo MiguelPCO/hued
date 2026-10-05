@@ -40,7 +40,13 @@ interface SettingsActions {
   setProfilePhotoUri: (uri: string | null) => void;
 }
 
-const todayString = () => new Date().toISOString().slice(0, 10);
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+// Local calendar day (YYYY-MM-DD): the daily export allowance resets at the user's midnight, not UTC's.
+const todayString = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
 
 export const useSettingsStore = create<SettingsState & SettingsActions>()(
   persist(

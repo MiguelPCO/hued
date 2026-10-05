@@ -19,8 +19,13 @@ jest.mock('react-native-mmkv', () => {
 
 import { useSettingsStore } from '../settingsStore';
 
-const todayString = () => new Date().toISOString().slice(0, 10);
-const yesterdayString = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+// Local calendar day (the store resets at local midnight); en-CA formats as YYYY-MM-DD.
+const todayString = () => new Date().toLocaleDateString('en-CA');
+const yesterdayString = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toLocaleDateString('en-CA');
+};
 
 describe('resetExportCountIfNewDay', () => {
   afterEach(() => {
