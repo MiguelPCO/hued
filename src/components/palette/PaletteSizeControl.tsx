@@ -79,23 +79,30 @@ export function PaletteSizeControl({ value, onChange, disabled }: Props) {
   // isn't subject to re-hit-testing.
   const startSizeRef = useRef(clampedValue);
 
+  // The responder below is created once, so it reads the latest `onChange` and
+  // `disabled` through these refs instead of closing over the first render's props.
+  const onChangeRef = useRef(onChange);
+  const disabledRef = useRef(disabled);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    disabledRef.current = disabled;
+  });
+
   const commit = () => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
-    onChange(liveValueRef.current);
+    onChangeRef.current(liveValueRef.current);
   };
 
   // Created once. The handlers read refs only when a gesture event fires, never
-  // during render, so react-hooks/refs is a false positive here. They do keep the
-  // first render's `onChange` and `disabled` (documented as H-09 in
-  // docs/testing/HALLAZGOS.md).
+  // during render, so react-hooks/refs is a false positive here.
   // eslint-disable-next-line react-hooks/refs
   const [panResponder] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt: GestureResponderEvent) => {
-        if (disabled) return;
+        if (disabledRef.current) return;
         const width = trackWidthRef.current;
         if (width <= 0) return;
         isDraggingRef.current = true;
@@ -106,7 +113,7 @@ export function PaletteSizeControl({ value, onChange, disabled }: Props) {
         setLiveValue(size);
       },
       onPanResponderMove: (_evt, gestureState) => {
-        if (disabled) return;
+        if (disabledRef.current) return;
         const width = trackWidthRef.current;
         if (width <= 0) return;
         const deltaSize = (gestureState.dx / width) * range;

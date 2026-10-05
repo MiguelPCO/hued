@@ -160,10 +160,10 @@ describe('PaletteSizeControl — slider', () => {
     expect(screen.getByText('3 colores')).toBeOnTheScreen();
   });
 
-  // H-09: el responder se crea con `useRef` en el primer render y conserva su `onChange`.
+  // H-09 (corregido): el responder se crea una vez y debe leer el `onChange` vigente.
   // El padre (`handlePaletteSizeChange`) depende de `palette`: tras la primera extracción
-  // el `onChange` vigente es otro, pero el arrastre sigue llamando al antiguo.
-  it.failing('reports the release to the latest onChange prop (H-09)', () => {
+  // el `onChange` vigente es otro y el arrastre debe llamar a ese, no al antiguo.
+  it('reports the release to the latest onChange prop (H-09)', () => {
     const first = jest.fn();
     const latest = jest.fn();
     const { rerender } = render(<PaletteSizeControl value={3} onChange={first} />);
@@ -177,7 +177,7 @@ describe('PaletteSizeControl — slider', () => {
     expect(first).not.toHaveBeenCalled();
   });
 
-  it.failing('ignores a drag that starts while a re-extraction is running (H-09)', () => {
+  it('ignores a drag that starts while a re-extraction is running (H-09)', () => {
     const onChange = jest.fn();
     const { rerender } = render(<PaletteSizeControl value={3} onChange={onChange} />);
     layoutTrack(200);

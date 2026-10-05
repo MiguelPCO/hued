@@ -192,9 +192,9 @@ describe('CornerControl — slider', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  // H-09: `useRef(PanResponder.create({...}))` conserva los handlers del primer render;
-  // un `onChange` nuevo (props que cambian) nunca se usa durante el arrastre.
-  it.failing('reports slider changes to the latest onChange prop (H-09)', () => {
+  // H-09 (corregido): el responder se crea una vez y debe leer el `onChange` vigente;
+  // antes un `onChange` nuevo (props que cambian) nunca se usaba durante el arrastre.
+  it('reports slider changes to the latest onChange prop (H-09)', () => {
     const first = jest.fn();
     const latest = jest.fn();
     const { rerender } = render(<CornerControl presets={PRESETS} value={16} onChange={first} />);

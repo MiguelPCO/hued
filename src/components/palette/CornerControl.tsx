@@ -43,6 +43,13 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
   const pendingRadiusRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
+  // The responder below is created once, so it reads the latest `onChange`
+  // through this ref instead of closing over the first render's prop.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+
   useEffect(
     () => () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -56,7 +63,7 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
         if (pendingRadiusRef.current !== null) {
-          onChange(pendingRadiusRef.current);
+          onChangeRef.current(pendingRadiusRef.current);
           pendingRadiusRef.current = null;
         }
       });
@@ -74,8 +81,7 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
   const startRadiusRef = useRef(clampedValue);
 
   // Created once. The handlers read refs only when a gesture event fires, never
-  // during render, so react-hooks/refs is a false positive here. They do keep the
-  // first render's `onChange` (documented as H-09 in docs/testing/HALLAZGOS.md).
+  // during render, so react-hooks/refs is a false positive here.
   // eslint-disable-next-line react-hooks/refs
   const [panResponder] = useState(() =>
     PanResponder.create({

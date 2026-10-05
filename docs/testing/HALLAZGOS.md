@@ -1,6 +1,6 @@
 # Hallazgos de la suite de tests
 
-Fecha: 2026-10-05 · Suite: `pnpm test` / `pnpm test:ci` · Cada hallazgo está fijado con un `it.failing` que referencia su ID.
+Fecha: 2026-10-05 · Suite: `pnpm test` / `pnpm test:ci` · Cada hallazgo abierto está fijado con un `it.failing` que referencia su ID.
 Cuando se corrija un bug, su test pasará a fallar con "expected to fail but passed": convertirlo en `it` normal y marcar el hallazgo como corregido.
 
 ## Resumen
@@ -12,7 +12,7 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 | H-07 | Media | Pantalla de paleta | Si `getPalette` falla, spinner infinito | `palette.test.tsx` |
 | H-08 | Media | Inicio | Si `listPalettes` falla, spinner infinito | `index.test.tsx` |
 | H-02 | Media | Navegación | `app/_layout.tsx` registra `onboarding` y no existe `app/onboarding.tsx` | `layouts.test.tsx` |
-| H-09 | Media | Controles | `PaletteSizeControl` y `CornerControl` usan el `onChange`/`disabled` del primer render durante el arrastre | `PaletteSizeControl.test.tsx`, `CornerControl.test.tsx` |
+| H-09 | ~~Media~~ Corregido | Controles | `PaletteSizeControl` y `CornerControl` usaban el `onChange`/`disabled` del primer render durante el arrastre | `PaletteSizeControl.test.tsx`, `CornerControl.test.tsx` (ahora `it` normales) |
 | H-05 | Baja | Accesibilidad | `textTertiary` y `error` sobre `bgPrimary` no llegan a contraste AA (3,55:1 y 3,68:1) | `tokens.test.ts` |
 | H-06 | Baja | Suscripción | El contador diario de exportaciones se reinicia a medianoche UTC, no local | `settingsStore.timezone.test.ts` |
 | H-01 | Baja | UI | `Button` descarta la prop `style` | `Button.test.tsx` |
@@ -46,14 +46,10 @@ Cuando se corrija un bug, su test pasará a fallar con "expected to fail but pas
 - **Sugerencia:** crear la pantalla o quitar el registro hasta entonces.
 - **Al corregir:** el test normal que fija el helper `routeFileExists` en el mismo archivo (3 rutas fijas y `onboarding` ausente) también habrá que actualizarlo.
 
-### H-09 — Closures obsoletos en los controles deslizantes · Media
-- **Qué pasa:** `useRef(PanResponder.create({...}))` evalúa `create` en cada render pero conserva el primero; sus handlers capturan el `onChange` y el `disabled` de ese render.
-- **Causa (fijada por los tests):** tras un cambio de props, el arrastre sigue llamando al `onChange` antiguo y respetando el `disabled` antiguo.
-- **Impacto probable (deducido del código; los tests solo fijan la causa):** en `PaletteSizeControl`, el padre (`handlePaletteSizeChange`) depende de `palette`; tras la primera extracción, arrastrar de nuevo llama a la versión antigua, cuyo `palette.colors.length` obsoleto puede tratar como "sin cambios" un tamaño legítimo (p. ej. volver a 5 tras pasar a 3), dejando el control mostrando un valor que la paleta no tiene. `CornerControl` tiene el mismo patrón (latente hoy).
-- **Evidencia:** 3 `it.failing` con ID H-09 (`onChange` obsoleto en ambos controles; `PaletteSizeControl` arrastra aunque esté `disabled`).
-- **Sugerencia:** guardar `onChange`/`disabled` en refs actualizados en cada render, o crear el responder con `useMemo` dependiente de ellos.
-- **Al corregir:** los `it.failing` leen los handlers del View que los lleva en el render actual (`pan.live()` en `test/panResponder.ts`), no `configs[0]`; por eso pasan a fallar ("Failing test passed…") tanto con la variante de refs como con la de `useMemo`. Quitar entonces `.failing` en los 3 tests.
-- **Relación con el lint:** son los mismos sitios que marca `react-hooks/refs` (ver "Mejoras y observaciones").
+### H-09 — Closures obsoletos en los controles deslizantes · Corregido
+- **Qué pasaba:** `useRef(PanResponder.create({...}))` conservaba los handlers del primer render, así que tras un cambio de props el arrastre seguía llamando al `onChange` antiguo, y `PaletteSizeControl` respetaba el `disabled` antiguo (arrastraba mientras se re-extraía la paleta).
+- **Corrección:** `CornerControl` y `PaletteSizeControl` leen `onChange` (y `disabled`) de refs actualizados en cada render; el responder se crea una sola vez con `useState(() => …)`.
+- **Tests:** los 3 `it.failing` pasaron a `it` normales (`CornerControl.test.tsx`, `PaletteSizeControl.test.tsx`) y quedan como regresión. `pan.live()` en `test/panResponder.ts` sigue leyendo los handlers del View del render actual.
 
 ### H-05 — Contraste insuficiente · Baja
 - `Colors.textTertiary` (#8A6F5C) sobre `bgPrimary` (#FDDCA9) = 3,55:1 ("Añadir nombre" en Ajustes); `Colors.error` (#DC2626) sobre `bgPrimary` = 3,68:1 (mensajes de error). Ambos < 4,5:1.
