@@ -117,6 +117,16 @@ See SPRINTS.md — increasingly stale vs. actual state; trust git log/code over 
 
 Each sprint has day-by-day tasks with EOD checks, acceptance criteria, and definition of done. Follow them strictly.
 
+## Testing
+
+- `pnpm test` (rápido), `pnpm test:coverage` (con umbrales), `pnpm test:ci` (typecheck + cobertura).
+- Jest + `jest-expo` + `@testing-library/react-native` v13. Zona horaria fija `Europe/Madrid` (`test/globalSetup.js`).
+- `test/setup.ts` mockea Skia (como *host elements* `Sk*`), MMKV, SQLite, sistema de archivos, RevenueCat, PostHog, Sentry y `expo-router`. Un test puede sobrescribir cualquier mock con su propio `jest.mock`.
+- Helpers en `test/`: `factories`, `skiaTree` (`findAll`, `findTexts`, `treeSignature`), `router`, `panResponder`, `fakePaletteDb`. Alias `@test/*` y `@app/*`.
+- Tests junto al módulo en `__tests__/`. **Excepción:** pantallas de `app/` e integración van en `test/__tests__/` (nunca dentro de `app/`: expo-router lo trataría como ruta).
+- Los bugs conocidos se fijan con `it.failing('… (H-xx)')`; el catálogo está en `docs/testing/HALLAZGOS.md`. Si un `it.failing` falla con "expected to fail but passed", el bug está corregido: pasarlo a `it`.
+- Invariante: preview y export dibujan el mismo árbol (`exportPalette.parity.test.tsx`). Cualquier archetype nuevo entra en esa tabla automáticamente.
+
 ## Files NOT to touch unless asked
 
 - `node_modules/`
