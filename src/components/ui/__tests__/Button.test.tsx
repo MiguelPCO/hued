@@ -114,10 +114,18 @@ describe('Button', () => {
     expect(labelStyle('x').color).toBe(Colors.textPrimary);
   });
 
-  // H-01: `style` se extrae de las props pero nunca se aplica al Pressable.
-  it.failing('applies the style prop passed by the caller (H-01)', () => {
+  // H-01 (corregido): `style` se extraía de las props pero nunca se aplicaba al Pressable.
+  it('applies the style prop passed by the caller (H-01)', () => {
     render(<Button label="x" style={{ marginTop: 12 }} />);
 
     expect(pressableStyle().marginTop).toBe(12);
+  });
+
+  it('lets the caller override the built-in style, and accepts a style function', () => {
+    render(<Button label="x" style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })} />);
+
+    expect(pressableStyle(true).opacity).toBe(0.5);
+    expect(pressableStyle(false).opacity).toBe(1);
+    expect(pressableStyle().minHeight).toBe(48);
   });
 });
