@@ -71,7 +71,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="palette/[id]" options={{ presentation: 'card' }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
         <StatusBar style="dark" />
         <AnalyticsConsentSheet />

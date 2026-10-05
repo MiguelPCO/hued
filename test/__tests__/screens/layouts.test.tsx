@@ -126,29 +126,27 @@ describe('RootLayout — structure', () => {
     expect(findAll(render(<RootLayout />).toJSON(), 'PostHogProvider')).toHaveLength(1);
   });
 
-  it('registers the tabs, the editor card, the paywall modal and onboarding', () => {
+  it('registers the tabs, the editor card and the paywall modal', () => {
     const screens = findAll(render(<RootLayout />).toJSON(), 'StackScreen');
 
-    expect(screens.map((s) => s.props.name)).toEqual(['(tabs)', 'palette/[id]', 'paywall', 'onboarding']);
+    expect(screens.map((s) => s.props.name)).toEqual(['(tabs)', 'palette/[id]', 'paywall']);
     expect(Object.fromEntries(screens.map((s) => [s.props.name, (s.props.options as { presentation?: string } | undefined)?.presentation]))).toEqual({
       '(tabs)': undefined,
       'palette/[id]': 'card',
       paywall: 'modal',
-      onboarding: 'fullScreenModal',
     });
   });
 
-  it('the route-file helper finds the routes that do exist (guards the H-02 check below)', () => {
+  it('the route-file helper finds the routes that do exist and rejects one that does not (guards the H-02 check below)', () => {
     const registered = findAll(render(<RootLayout />).toJSON(), 'StackScreen').map((s) => String(s.props.name));
 
-    expect(registered.filter((name) => name !== 'onboarding' && !routeFileExists(name))).toEqual([]);
     expect(registered.filter((name) => routeFileExists(name))).toEqual(['(tabs)', 'palette/[id]', 'paywall']);
-    expect(routeFileExists('onboarding')).toBe(false);
+    expect(routeFileExists('no-such-route')).toBe(false);
   });
 
-  // H-02: `onboarding` está registrada pero `app/onboarding.tsx` no existe. expo-router
-  // avisa de la ruta inexistente y la pantalla de bienvenida prevista nunca se muestra.
-  it.failing('every registered Stack.Screen has a route file (H-02: "onboarding" has none)', () => {
+  // H-02 (corregido): `onboarding` estaba registrada sin `app/onboarding.tsx`; expo-router
+  // avisaba de la ruta inexistente. Se quitó el registro hasta que exista la pantalla.
+  it('every registered Stack.Screen has a route file (H-02)', () => {
     const names = findAll(render(<RootLayout />).toJSON(), 'StackScreen').map((s) => String(s.props.name));
 
     expect(names.filter((name) => !routeFileExists(name))).toEqual([]);
