@@ -12,7 +12,7 @@ export const Primitive = {
   cream200: '#FDDCA9',   // base background — reference palette
   cream300: '#F0DDBE',   // borders/dividers on cream
   cream400: '#D8B48A',   // muted text on dark surfaces
-  brown500: '#8A6F5C',   // tertiary text, tab bar inactive
+  brown500: '#755E4E',   // tertiary text, tab bar inactive — 4.61:1 on bgPrimary (AA)
   brown700: '#6B4E3D',   // secondary text
   brown800: '#562717',   // primary ink — reference palette
   brown900: '#3A1A0F',   // inverse background (dark surfaces)
@@ -24,7 +24,9 @@ export const Primitive = {
   amber400: '#FEA712',   // highlight chips/badges (pair with brown800 text)
 
   // Status (kept distinct from brand accents to avoid semantic collision)
-  error500: '#DC2626',
+  // 4.63:1 on bgPrimary (AA): error is used as text there. Close to red500 by necessity —
+  // any red that passes AA on cream200 lands near it; the warning icon/label still tells them apart.
+  error500: '#BF2121',
   success500: '#16A34A',
 } as const;
 

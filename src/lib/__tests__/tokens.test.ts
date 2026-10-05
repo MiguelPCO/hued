@@ -61,13 +61,17 @@ describe('WCAG contrast', () => {
     expect(contrast(Primitive.white, Primitive.orange500)).toBeLessThan(4.5);
   });
 
-  // H-05: estos dos pares se usan como texto sobre `bgPrimary` (Ajustes: "Añadir
-  // nombre"; mensajes de error en paywall, pantalla de paleta y recorte) y no llegan a AA.
-  it.failing('textTertiary on bgPrimary reaches AA (H-05: 3.55:1)', () => {
+  // H-05 (corregido): estos pares se usan como texto sobre `bgPrimary` (Ajustes: "Añadir
+  // nombre"; mensajes de error en paywall, pantalla de paleta y recorte) y daban 3,55:1 y 3,68:1.
+  it('textTertiary on bgPrimary reaches AA (H-05)', () => {
     expect(contrast(Colors.textTertiary, Colors.bgPrimary)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it.failing('error on bgPrimary reaches AA (H-05: 3.68:1)', () => {
+  it('textPlaceholder on bgPrimary reaches AA (same value as textTertiary, H-05)', () => {
+    expect(contrast(Colors.textPlaceholder, Colors.bgPrimary)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('error on bgPrimary reaches AA (H-05)', () => {
     expect(contrast(Colors.error, Colors.bgPrimary)).toBeGreaterThanOrEqual(4.5);
   });
 });
