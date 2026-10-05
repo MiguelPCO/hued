@@ -28,9 +28,9 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
   const [draftText, setDraftText] = useState(String(value));
   const trackWidthRef = useRef(0);
 
-  useEffect(() => {
-    if (!isEditingText) setDraftText(String(value));
-  }, [value, isEditingText]);
+  // While the field is not being edited it mirrors the prop directly; the draft
+  // only takes over from focus until blur.
+  const shownText = isEditingText ? draftText : String(value);
 
   const clampedValue = Math.max(MIN_RADIUS, Math.min(value, MAX_RADIUS));
   const thumbX =
@@ -73,7 +73,11 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
   // isn't subject to re-hit-testing.
   const startRadiusRef = useRef(clampedValue);
 
-  const panResponder = useRef(
+  // Created once. The handlers read refs only when a gesture event fires, never
+  // during render, so react-hooks/refs is a false positive here. They do keep the
+  // first render's `onChange` (documented as H-09 in docs/testing/HALLAZGOS.md).
+  // eslint-disable-next-line react-hooks/refs
+  const [panResponder] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
@@ -95,7 +99,7 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
         scheduleRadius(radius);
       },
     })
-  ).current;
+  );
 
   function commitDraftText() {
     const parsed = Number.parseInt(draftText, 10);
@@ -124,9 +128,12 @@ export function CornerControl({ presets, value, onChange, onLockedPress }: Props
         <View style={styles.pxField}>
           <TextInput
             style={styles.pxInput}
-            value={draftText}
+            value={shownText}
             onChangeText={setDraftText}
-            onFocus={() => setIsEditingText(true)}
+            onFocus={() => {
+              setDraftText(String(value));
+              setIsEditingText(true);
+            }}
             onBlur={() => {
               setIsEditingText(false);
               commitDraftText();

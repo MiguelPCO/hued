@@ -2,11 +2,6 @@ import * as Sentry from '@sentry/react-native';
 import { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-// Same web-gating pattern as the old app/crop.tsx — the native module has no
-// web implementation and throws at require-time if loaded there.
-const ImageCropPicker: typeof import('react-native-image-crop-picker').default | null =
-  process.env.EXPO_OS === 'web' ? null : require('react-native-image-crop-picker').default;
-
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
 import { extractColors, ExtractError } from '@/lib/color/extract';
@@ -14,6 +9,12 @@ import { updatePaletteColors, updatePaletteImage } from '@/lib/db/palettes';
 import { optimize, thumbnail } from '@/lib/utils/image';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 import type { ExtractedColor } from '@/types/palette';
+
+// Same web-gating pattern as the old app/crop.tsx — the native module has no
+// web implementation and throws at require-time if loaded there.
+const ImageCropPicker: typeof import('react-native-image-crop-picker').default | null =
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  process.env.EXPO_OS === 'web' ? null : require('react-native-image-crop-picker').default;
 
 type AspectRatio = '1:1' | '4:5' | '9:16' | 'original';
 

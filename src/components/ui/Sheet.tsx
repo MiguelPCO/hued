@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Modal,
@@ -17,8 +17,8 @@ interface Props extends ViewProps {
 }
 
 export function Sheet({ visible, onClose, children, style, ...props }: Props) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(300)).current;
+  const [opacity] = useState(() => new Animated.Value(0));
+  const [translateY] = useState(() => new Animated.Value(300));
 
   useEffect(() => {
     if (visible) {

@@ -85,7 +85,12 @@ export function PaletteSizeControl({ value, onChange, disabled }: Props) {
     onChange(liveValueRef.current);
   };
 
-  const panResponder = useRef(
+  // Created once. The handlers read refs only when a gesture event fires, never
+  // during render, so react-hooks/refs is a false positive here. They do keep the
+  // first render's `onChange` and `disabled` (documented as H-09 in
+  // docs/testing/HALLAZGOS.md).
+  // eslint-disable-next-line react-hooks/refs
+  const [panResponder] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
@@ -114,7 +119,7 @@ export function PaletteSizeControl({ value, onChange, disabled }: Props) {
       onPanResponderRelease: commit,
       onPanResponderTerminate: commit,
     })
-  ).current;
+  );
 
   return (
     <View>

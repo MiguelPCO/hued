@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,7 +23,8 @@ export default function HomeScreen() {
   const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
   const [picking, setPicking] = useState(false);
   const [galleryDenied, setGalleryDenied] = useState(false);
-  const [captureFailed, setCaptureFailed] = useState(false);
+  const { captureFailed: captureFailedParam } = useLocalSearchParams<{ captureFailed?: string }>();
+  const [captureFailed, setCaptureFailed] = useState(captureFailedParam === '1');
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -32,11 +33,13 @@ export default function HomeScreen() {
   const [manageSheetCollection, setManageSheetCollection] = useState<Collection | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [confirmingDeleteCollection, setConfirmingDeleteCollection] = useState(false);
-  const { captureFailed: captureFailedParam } = useLocalSearchParams<{ captureFailed?: string }>();
-
-  useEffect(() => {
+  // Re-raise the banner when the route param changes (adjusting state during render,
+  // not in an effect, so there is no extra render pass).
+  const [seenCaptureFailedParam, setSeenCaptureFailedParam] = useState(captureFailedParam);
+  if (captureFailedParam !== seenCaptureFailedParam) {
+    setSeenCaptureFailedParam(captureFailedParam);
     if (captureFailedParam === '1') setCaptureFailed(true);
-  }, [captureFailedParam]);
+  }
 
   useFocusEffect(
     useCallback(() => {

@@ -163,8 +163,11 @@ function SwatchHandle({
     onSizeMatchChange([]);
   }, [onSizeMatchChange]);
 
+  // The handlers read refs only when a gesture event fires, never during render,
+  // so react-hooks/refs is a false positive on both responders below.
   const movePanResponder = useMemo(
     () =>
+      // eslint-disable-next-line react-hooks/refs
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onPanResponderGrant: () => {
@@ -196,6 +199,7 @@ function SwatchHandle({
 
   const resizePanResponder = useMemo(
     () =>
+      // eslint-disable-next-line react-hooks/refs
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onPanResponderGrant: () => {
