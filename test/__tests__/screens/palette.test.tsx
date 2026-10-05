@@ -36,7 +36,8 @@ jest.mock('@/lib/export/exportPalette', () => ({
 const media = MediaLibrary as jest.Mocked<typeof MediaLibrary>;
 const sharing = Sharing as jest.Mocked<typeof Sharing>;
 const palette = makePalette({ id: 'p1', colors: makeColors(5) });
-const today = () => new Date().toISOString().slice(0, 10);
+// Local calendar day, computed independently of the store (en-CA formats as YYYY-MM-DD).
+const today = () => new Date().toLocaleDateString('en-CA');
 
 // Drains the promise chains the screen starts (several awaits deep) inside act().
 const settle = async () => {
@@ -94,8 +95,8 @@ describe('PaletteScreen — loading', () => {
     expect(routerMock.back).toHaveBeenCalledTimes(1);
   });
 
-  // Plain guard for H-07: pins the two states the it.failing below sits between, so a wrong-reason
-  // throw (it.failing passes on ANY error) cannot masquerade as the intended failure.
+  // Pins the loading states around the H-07 failure test below: spinner while `getPalette` is
+  // pending, editor once it resolves.
   it('shows the spinner while getPalette is pending and the editor when it resolves', async () => {
     let resolve!: (p: typeof palette) => void;
     searchParamsMock.mockReturnValue({ id: 'p1' });
@@ -112,26 +113,27 @@ describe('PaletteScreen — loading', () => {
     expect(screen.getByText('Exportar')).toBeOnTheScreen();
   });
 
-  // H-07: `getPalette(id).then(...)` no tiene `catch`/`finally`: si la base de datos falla,
-  // `setLoading(false)` no llega a ejecutarse y la pantalla queda en spinner para siempre.
-  // Se simula con un thenable que entrega el fallo solo por el manejador de rechazo que reciba:
-  // con el `.then(cb)` actual no hay ninguno (sin `unhandledRejection` que rompa el worker de
-  // Jest) y el spinner se queda; con `await` + `finally` o `.then(cb, onErr)` el fallo llega al
-  // manejador y el test pasa a fallar ("expected to fail"), señal de que H-07 está arreglado.
-  // La aserción no depende del texto que muestre un arreglo: solo exige que el spinner se vaya.
-  it.failing('leaves the spinner when the database fails (H-07)', async () => {
+  // H-07 (corregido): `getPalette(id).then(...)` no tenía `catch`/`finally`: si la base de datos
+  // fallaba, `setLoading(false)` no llegaba a ejecutarse y la pantalla quedaba en spinner para
+  // siempre. Ahora muestra el error con un botón de reintento y avisa a Sentry.
+  it('shows an error with a retry button when getPalette fails, and recovers on retry (H-07)', async () => {
     searchParamsMock.mockReturnValue({ id: 'p1' });
-    (getPalette as jest.Mock).mockReturnValue({
-      then: (_ok: unknown, fail?: (e: Error) => void) => {
-        fail?.(new Error('db'));
-        return Promise.resolve();
-      },
-    });
+    (getPalette as jest.Mock).mockRejectedValueOnce(new Error('db')).mockResolvedValueOnce(palette);
 
     render(<PaletteScreen />);
     await settle();
 
     expect(screen.UNSAFE_queryAllByType(ActivityIndicator)).toHaveLength(0);
+    expect(screen.getByText('No se pudo cargar la paleta.')).toBeOnTheScreen();
+    expect(Sentry.captureException).toHaveBeenCalledWith(new Error('db'));
+    expect(screen.queryByText('Exportar')).toBeNull();
+
+    fireEvent.press(screen.getByText('Reintentar'));
+    await settle();
+
+    expect(screen.queryByText('No se pudo cargar la paleta.')).toBeNull();
+    expect(screen.getByText('Exportar')).toBeOnTheScreen();
+    expect(getPalette).toHaveBeenCalledTimes(2);
   });
 });
 

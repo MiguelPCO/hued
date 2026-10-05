@@ -21,6 +21,7 @@ type Filter = 'all' | 'favorites' | string;
 
 export default function HomeScreen() {
   const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [picking, setPicking] = useState(false);
   const [galleryDenied, setGalleryDenied] = useState(false);
   const { captureFailed: captureFailedParam } = useLocalSearchParams<{ captureFailed?: string }>();
@@ -41,12 +42,20 @@ export default function HomeScreen() {
     if (captureFailedParam === '1') setCaptureFailed(true);
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      listPalettes().then((p) => setHasPalettes(p.length > 0)).catch(Sentry.captureException);
-      listCollections().then(setCollections).catch(Sentry.captureException);
-    }, [])
-  );
+  const loadHome = useCallback(() => {
+    listPalettes()
+      .then((p) => {
+        setHasPalettes(p.length > 0);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        Sentry.captureException(err);
+        setLoadFailed(true);
+      });
+    listCollections().then(setCollections).catch(Sentry.captureException);
+  }, []);
+
+  useFocusEffect(loadHome);
 
   const handlePressPalette = useCallback((id: string) => {
     router.push({ pathname: '/palette/[id]', params: { id } });
@@ -130,6 +139,21 @@ export default function HomeScreen() {
     } catch (err) {
       Sentry.captureException(err);
     }
+  }
+
+  if (hasPalettes === null && loadFailed) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingBox]}>
+        <Text variant="body" color={Colors.textSecondary}>No se pudieron cargar tus paletas.</Text>
+        <Button
+          label="Reintentar"
+          onPress={() => {
+            setLoadFailed(false);
+            loadHome();
+          }}
+        />
+      </SafeAreaView>
+    );
   }
 
   if (hasPalettes === null) {
@@ -336,7 +360,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgPrimary },
-  loadingBox: { alignItems: 'center', justifyContent: 'center' },
+  loadingBox: { alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,

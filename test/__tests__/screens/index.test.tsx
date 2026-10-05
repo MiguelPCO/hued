@@ -68,9 +68,9 @@ describe('HomeScreen — loading', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(new Error('db'));
   });
 
-  // Guard for H-08: the screen is a spinner while `listPalettes` is pending and shows its content
-  // once it resolves, so the `it.failing` below can only fail because of the failure branch.
-  it('keeps the spinner while listPalettes is pending and shows the screen once it resolves (H-08 guard)', async () => {
+  // Pins the loading states around the H-08 failure test below: spinner while `listPalettes` is
+  // pending, content once it resolves.
+  it('keeps the spinner while listPalettes is pending and shows the screen once it resolves (H-08)', async () => {
     let resolve!: (v: unknown[]) => void;
     (listPalettes as jest.Mock).mockReturnValue(new Promise((r) => { resolve = r; }));
     (listCollections as jest.Mock).mockResolvedValue([]);
@@ -85,16 +85,27 @@ describe('HomeScreen — loading', () => {
     expect(screen.getByText('Hued')).toBeOnTheScreen();
   });
 
-  // H-08: si `listPalettes` falla, `hasPalettes` se queda en `null` y la pantalla es un
-  // spinner para siempre (no hay estado de error ni botón de reintento).
-  it.failing('leaves the spinner when the database fails (H-08)', async () => {
-    (listPalettes as jest.Mock).mockRejectedValue(new Error('db'));
+  // H-08 (corregido): si `listPalettes` fallaba, `hasPalettes` se quedaba en `null` y la pantalla
+  // era un spinner para siempre. Ahora muestra el error con un botón de reintento.
+  it('shows an error with a retry button when listPalettes fails, and recovers on retry (H-08)', async () => {
+    (listPalettes as jest.Mock)
+      .mockRejectedValueOnce(new Error('db'))
+      .mockResolvedValueOnce([makePalette({ id: 'p0' })]);
     (listCollections as jest.Mock).mockResolvedValue([]);
 
     render(<HomeScreen />);
     await flush();
 
+    expect(screen.UNSAFE_queryAllByType(ActivityIndicator)).toHaveLength(0);
+    expect(screen.getByText('No se pudieron cargar tus paletas.')).toBeOnTheScreen();
+    expect(screen.queryByText('Hued')).toBeNull();
+
+    fireEvent.press(screen.getByText('Reintentar'));
+    await flush();
+
+    expect(screen.queryByText('No se pudieron cargar tus paletas.')).toBeNull();
     expect(screen.getByText('Hued')).toBeOnTheScreen();
+    expect(listPalettes).toHaveBeenCalledTimes(2);
   });
 });
 

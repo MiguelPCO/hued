@@ -47,6 +47,8 @@ export default function PaletteScreen() {
   const [palette, setPalette] = useState<Palette | null>(null);
   const [config, setConfig] = useState<LayoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [extracting, setExtracting] = useState(false);
   const [canvasMaxHeight, setCanvasMaxHeight] = useState(0);
   const [exportSheetVisible, setExportSheetVisible] = useState(false);
@@ -75,18 +77,29 @@ export default function PaletteScreen() {
 
   useEffect(() => {
     if (!id) return;
-    getPalette(id).then((p) => {
-      if (p) {
-        setPalette(p);
-        setConfig(p.layoutConfig);
-        // processCapture() saves with colors: [] and doesn't wait on
-        // extraction — the photo shows immediately, colors populate here a
-        // moment later instead of gating navigation on it.
-        if (p.colors.length === 0) attemptExtraction(p);
-      }
-      setLoading(false);
-    });
-  }, [id, attemptExtraction]);
+    getPalette(id)
+      .then((p) => {
+        if (p) {
+          setPalette(p);
+          setConfig(p.layoutConfig);
+          // processCapture() saves with colors: [] and doesn't wait on
+          // extraction — the photo shows immediately, colors populate here a
+          // moment later instead of gating navigation on it.
+          if (p.colors.length === 0) attemptExtraction(p);
+        }
+      })
+      .catch((err) => {
+        Sentry.captureException(err);
+        setLoadFailed(true);
+      })
+      .finally(() => setLoading(false));
+  }, [id, attemptExtraction, loadAttempt]);
+
+  function retryLoad() {
+    setLoadFailed(false);
+    setLoading(true);
+    setLoadAttempt((n) => n + 1);
+  }
 
   useEffect(() => {
     return () => {
@@ -241,6 +254,16 @@ export default function PaletteScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.loadingBox]}>
         <ActivityIndicator color={Colors.accent} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingBox]}>
+        <Text variant="body" color={Colors.textSecondary}>No se pudo cargar la paleta.</Text>
+        <Button label="Reintentar" onPress={retryLoad} />
+        <Button label="Volver" onPress={() => router.back()} variant="ghost" />
       </SafeAreaView>
     );
   }
