@@ -6,6 +6,7 @@ import { launchGalleryPicker } from '@/components/capture/GalleryPicker';
 import { processCapture } from '@/lib/capture/processCapture';
 import { createCollection, deleteCollection, listCollections, renameCollection } from '@/lib/db/collections';
 import { listPalettes } from '@/lib/db/palettes';
+import { seedSamplePalettesOnce } from '@/lib/samples/seedSamplePalettes';
 import type { Collection } from '@/types/palette';
 import HomeScreen from '@app/(tabs)/index';
 import { makePalette } from '@test/factories';
@@ -20,6 +21,7 @@ jest.mock('@/lib/db/collections', () => ({
 }));
 jest.mock('@/components/capture/GalleryPicker', () => ({ launchGalleryPicker: jest.fn() }));
 jest.mock('@/lib/capture/processCapture', () => ({ processCapture: jest.fn() }));
+jest.mock('@/lib/samples/seedSamplePalettes', () => ({ seedSamplePalettesOnce: jest.fn() }));
 jest.mock('@/components/palette/PaletteGrid', () => {
   const { createElement } = require('react');
   const { Text } = require('react-native');
@@ -40,10 +42,34 @@ const flush = () => act(async () => {});
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (seedSamplePalettesOnce as jest.Mock).mockResolvedValue(undefined);
   resetRouterMocks();
 });
 
 describe('HomeScreen — loading', () => {
+  it('waits for the first-launch seed before reading palettes and collections', async () => {
+    let finish!: () => void;
+    (seedSamplePalettesOnce as jest.Mock).mockReturnValue(new Promise<void>((r) => { finish = r; }));
+    mount();
+    await flush();
+    expect(listPalettes).not.toHaveBeenCalled();
+    expect(listCollections).not.toHaveBeenCalled();
+
+    await act(async () => { finish(); });
+
+    expect(listPalettes).toHaveBeenCalledTimes(1);
+    expect(listCollections).toHaveBeenCalledTimes(1);
+  });
+
+  it('still loads the library and reports to Sentry when the seed fails', async () => {
+    (seedSamplePalettesOnce as jest.Mock).mockRejectedValue(new Error('seed'));
+    mount();
+    await flush();
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(new Error('seed'));
+    expect(screen.getByText('Tus paletas')).toBeOnTheScreen();
+  });
+
   it('shows only a spinner until the palettes load', async () => {
     mount();
 

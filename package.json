@@ -13,7 +13,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:ci": "pnpm typecheck && pnpm lint && jest --coverage --ci",
-    "preprocess-colors": "tsx scripts/preprocess-colors.ts"
+    "preprocess-colors": "tsx scripts/preprocess-colors.ts",
+    "generate-samples": "tsx scripts/generate-sample-images.ts"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
@@ -27,6 +28,7 @@
     "color-name-list": "^14.45.0",
     "expo": "~57.0.24",
     "expo-application": "~57.0.3",
+    "expo-asset": "~57.0.18",
     "expo-camera": "~57.0.5",
     "expo-constants": "~57.0.19",
     "expo-dev-client": "~57.0.19",
@@ -67,6 +69,7 @@
     "eslint-config-expo": "~57.0.2",
     "eslint-config-prettier": "^10.1.8",
     "jest-expo": "~57.0.5",
+    "jimp-compact": "0.16.1",
     "prettier": "^3.8.3",
     "react-test-renderer": "19.2.3",
     "tsx": "^4.23.0",

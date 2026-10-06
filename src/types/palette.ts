@@ -60,7 +60,7 @@ export type CaptureSource = 'camera' | 'gallery';
 
 export interface PaletteMeta {
   capturedAt: number;
-  source: CaptureSource;
+  source: CaptureSource | 'sample';
   aspectRatio: string;
 }
 
