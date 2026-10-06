@@ -58,3 +58,6 @@ yarn-error.*
 .worktrees/
 
 coverage/
+
+# third-party palette reference screenshots (not ours to redistribute)
+img/
