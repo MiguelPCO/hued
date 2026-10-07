@@ -501,6 +501,16 @@ describe('PaletteScreen — delete and navigation', () => {
     expect(routerMock.back).toHaveBeenCalledTimes(1);
   });
 
+  it('"← Volver" returns to the home tab when there is nothing to go back to (after a capture)', async () => {
+    routerMock.canGoBack.mockReturnValue(false);
+    await mount();
+
+    fireEvent.press(screen.getByText('← Volver'));
+
+    expect(routerMock.back).not.toHaveBeenCalled();
+    expect(routerMock.replace).toHaveBeenCalledWith('/(tabs)');
+  });
+
   it('"Listo" returns to the home tab', async () => {
     await mount();
 

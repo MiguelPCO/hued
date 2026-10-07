@@ -183,6 +183,12 @@ export default function PaletteScreen() {
     [palette, updateConfig]
   );
 
+  // After a camera capture the palette is the only screen in the stack, so back would be unhandled.
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  }
+
   async function handleDelete() {
     if (!palette) return;
     setDeleting(true);
@@ -263,7 +269,7 @@ export default function PaletteScreen() {
       <SafeAreaView style={[styles.container, styles.loadingBox]}>
         <Text variant="body" color={Colors.textSecondary}>No se pudo cargar la paleta.</Text>
         <Button label="Reintentar" onPress={retryLoad} />
-        <Button label="Volver" onPress={() => router.back()} variant="ghost" />
+        <Button label="Volver" onPress={() => goBack()} variant="ghost" />
       </SafeAreaView>
     );
   }
@@ -272,7 +278,7 @@ export default function PaletteScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.loadingBox]}>
         <Text variant="body" color={Colors.textSecondary}>Paleta no encontrada.</Text>
-        <Button label="Volver" onPress={() => router.back()} variant="ghost" />
+        <Button label="Volver" onPress={() => goBack()} variant="ghost" />
       </SafeAreaView>
     );
   }
@@ -281,7 +287,7 @@ export default function PaletteScreen() {
     <SafeAreaView style={styles.container}>
       <StripeBar />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBack()} style={styles.backBtn}>
           <Text variant="body" color={Colors.accent}>← Volver</Text>
         </TouchableOpacity>
         <View style={styles.headerActions}>
