@@ -26,24 +26,24 @@
     "@sentry/react-native": "~7.11.0",
     "@shopify/react-native-skia": "2.6.2",
     "color-name-list": "^14.45.0",
-    "expo": "~57.0.24",
+    "expo": "~57.0.27",
     "expo-application": "~57.0.3",
-    "expo-asset": "~57.0.18",
-    "expo-camera": "~57.0.5",
-    "expo-constants": "~57.0.19",
+    "expo-asset": "~57.0.19",
+    "expo-camera": "~57.0.6",
+    "expo-constants": "~57.0.21",
     "expo-dev-client": "~57.0.19",
     "expo-device": "~57.0.2",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
-    "expo-image-manipulator": "~57.0.19",
-    "expo-image-picker": "~57.0.19",
-    "expo-linking": "~57.0.10",
+    "expo-image-manipulator": "~57.0.21",
+    "expo-image-picker": "~57.0.20",
+    "expo-linking": "~57.0.12",
     "expo-localization": "~57.0.2",
     "expo-media-library": "~57.0.5",
-    "expo-router": "~57.0.22",
-    "expo-sharing": "~57.0.21",
+    "expo-router": "~57.0.25",
+    "expo-sharing": "~57.0.22",
     "expo-splash-screen": "~57.0.9",
-    "expo-sqlite": "~57.0.3",
+    "expo-sqlite": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "posthog-react-native": "^4.45.6",
     "react": "19.2.3",
@@ -82,7 +82,9 @@
       "**/__tests__/**/*.test.tsx"
     ],
     "globalSetup": "<rootDir>/test/globalSetup.js",
-    "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
     "moduleNameMapper": {
       "^@test/(.*)$": "<rootDir>/test/$1",
       "^@app/(.*)$": "<rootDir>/app/$1"
@@ -96,9 +98,24 @@
       "!src/components/test/**"
     ],
     "coverageThreshold": {
-      "./src/lib/": { "lines": 96, "statements": 95, "functions": 88, "branches": 92 },
-      "./src/components/": { "lines": 96, "statements": 95, "functions": 94, "branches": 93 },
-      "./app/": { "lines": 94, "statements": 90, "functions": 85, "branches": 85 }
+      "./src/lib/": {
+        "lines": 96,
+        "statements": 95,
+        "functions": 88,
+        "branches": 92
+      },
+      "./src/components/": {
+        "lines": 96,
+        "statements": 95,
+        "functions": 94,
+        "branches": 93
+      },
+      "./app/": {
+        "lines": 94,
+        "statements": 90,
+        "functions": 85,
+        "branches": 85
+      }
     },
     "testPathIgnorePatterns": [
       "/node_modules/",

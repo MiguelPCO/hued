@@ -71,7 +71,8 @@
       ],
       "./plugins/withLegacyStorageMaxSdk",
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-asset"
     ],
     "extra": {
       "router": {},
