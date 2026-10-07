@@ -68,7 +68,7 @@ For multi-step tasks, state a brief plan:
 - New Architecture enabled (Fabric + TurboModules)
 - pnpm, EAS Build (Android dev-client profile). `.nvmrc` must stay ≥22.13 in sync with `package.json`'s `engines.node` — EAS reads `.nvmrc` for the builder's Node version, and a stale one breaks pnpm install with a misleading "Failed to install pnpm" error
 
-Full stack rationale: see SCHEMA.md §1.
+Full stack rationale: see docs/SCHEMA.md §1.
 
 ## Architecture principles (non-negotiable)
 
@@ -99,11 +99,11 @@ Full stack rationale: see SCHEMA.md §1.
 - `src/data/` = static datasets (named colors, archetypes registry)
 - `src/types/` = TypeScript type definitions
 
-See SCHEMA.md §3 for full tree.
+See docs/SCHEMA.md §3 for full tree.
 
 ## Sprint plan
 
-See SPRINTS.md — increasingly stale vs. actual state; trust git log/code over it. Sprints 0-5 (foundations through compose+export+history) and Sprint 6 slice 1 (RevenueCat monetization) are merged to master. Sprint 6's remaining scope (onboarding, Play Store assets, production submission) is deferred pending external accounts. Current focus (2026-09-09) is post-redesign polish on the edit screen, see "Recent changes" below.
+See docs/SPRINTS.md — increasingly stale vs. actual state; trust git log/code over it. Sprints 0-5 (foundations through compose+export+history) and Sprint 6 slice 1 (RevenueCat monetization) are merged to master. Sprint 6's remaining scope (onboarding, Play Store assets, production submission) is deferred pending external accounts. Current focus (2026-09-09) is post-redesign polish on the edit screen, see "Recent changes" below.
 
 ## Recent changes (2026-09-09)
 
@@ -136,9 +136,9 @@ Each sprint has day-by-day tasks with EOD checks, acceptance criteria, and defin
 
 ## Reference documents
 
-- **PRD.md** — product vision, personas, scope, success metrics
-- **SCHEMA.md** — technical architecture, data models, ADRs
-- **SPRINTS.md** — day-by-day execution plan
+- **docs/PRD.md** — product vision, personas, scope, success metrics
+- **docs/SCHEMA.md** — technical architecture, data models, ADRs
+- **docs/SPRINTS.md** — day-by-day execution plan
 
 ## Agent skills
 
@@ -148,4 +148,4 @@ GitHub Issues (`MiguelPCO/hued`), via `gh` CLI. See `docs/agents/issue-tracker.m
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+Single-context: `docs/CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
