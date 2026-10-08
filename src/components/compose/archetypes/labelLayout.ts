@@ -45,22 +45,51 @@ export function fitText(
   return { text: cut + ELLIPSIS, size: fitted };
 }
 
-function lineTops(card: SwatchRect, count: number, o: LabelOptions): number[] {
+/** A label line; `wrap` lets it break onto a second line when it doesn't fit (colour names). */
+export type LabelText = string | { text: string; wrap: true };
+
+/** Breaks `text` in two at the space that leaves the shorter widest half; unchanged if it fits or has no space. */
+export function wrapLine(text: string, size: number, maxWidth: number, measure: Measure): string[] {
+  if (measure(text, size) <= maxWidth) return [text];
+  let best: string[] = [text];
+  let bestWidth = Infinity;
+  for (let at = text.indexOf(' '); at !== -1; at = text.indexOf(' ', at + 1)) {
+    const parts = [text.slice(0, at), text.slice(at + 1)];
+    const widest = Math.max(measure(parts[0], size), measure(parts[1], size));
+    if (widest < bestWidth) {
+      best = parts;
+      bestWidth = widest;
+    }
+  }
+  return best;
+}
+
+const blockHeight = (lines: number, o: LabelOptions) => lines * o.fontSize + (lines - 1) * o.lineGap;
+
+// Top of each block (a block is one label line, or two when a name wrapped).
+function blockTops(card: SwatchRect, sizes: number[], o: LabelOptions): number[] {
+  const count = sizes.length;
+  const heights = sizes.map((n) => blockHeight(n, o));
   if (o.position === 'split') {
     if (count === 1) return [o.padY];
-    const last = card.height - o.padY - o.fontSize;
-    return Array.from({ length: count }, (_, i) =>
+    const last = card.height - o.padY - heights[count - 1];
+    return heights.map((_, i) =>
       i === 0 ? o.padY : i === count - 1 ? last : (o.padY + last) / 2,
     );
   }
-  const stack = count * o.fontSize + (count - 1) * o.lineGap;
+  const stack = heights.reduce((sum, h) => sum + h, 0) + (count - 1) * o.lineGap;
   const start =
     o.position === 'top'
       ? o.padY
       : o.position === 'bottom'
         ? card.height - o.padY - stack
         : (card.height - stack) / 2;
-  return Array.from({ length: count }, (_, i) => start + i * (o.fontSize + o.lineGap));
+  let top = start;
+  return heights.map((h) => {
+    const at = top;
+    top += h + o.lineGap;
+    return at;
+  });
 }
 
 function lineAlign(align: LabelAlign, index: number, count: number): 'left' | 'center' | 'right' {
@@ -69,26 +98,42 @@ function lineAlign(align: LabelAlign, index: number, count: number): 'left' | 'c
   return index === count - 1 ? 'right' : 'center';
 }
 
-/** Lines are given top to bottom; the result has each one's text (possibly shortened), baseline position and size. */
+function blocksFor(lines: LabelText[], o: LabelOptions, maxWidth: number, measure: Measure) {
+  return lines.map((line) =>
+    typeof line === 'string' ? [line] : wrapLine(line.text, o.fontSize, maxWidth, measure),
+  );
+}
+
+/**
+ * Lines are given top to bottom; the result has each one's text (possibly shortened), baseline position and size.
+ * A `wrap` line that is too wide goes on two lines when the card has room for the extra one.
+ */
 export function layoutLabelLines(
   card: SwatchRect,
-  lines: string[],
+  lines: LabelText[],
   o: LabelOptions,
   measure: Measure,
 ): LabelLine[] {
-  const tops = lineTops(card, lines.length, o);
   const maxWidth = Math.max(0, card.width - 2 * o.padX);
+  let blocks = blocksFor(lines, o, maxWidth, measure);
+  const stack = blocks.reduce((sum, b) => sum + blockHeight(b.length, o), 0) + (blocks.length - 1) * o.lineGap;
+  if (stack > card.height - 2 * o.padY)
+    blocks = lines.map((line) => [typeof line === 'string' ? line : line.text]);
 
-  return lines.map((line, i) => {
-    const fit = fitText(line, o.fontSize, maxWidth, measure);
-    const width = measure(fit.text, fit.size);
-    const align = lineAlign(o.align, i, lines.length);
-    const x =
-      align === 'left'
-        ? card.x + o.padX
-        : align === 'right'
-          ? card.x + card.width - o.padX - width
-          : card.x + (card.width - width) / 2;
-    return { text: fit.text, x, y: card.y + tops[i] + fit.size * BASELINE_RATIO, size: fit.size };
-  });
+  const tops = blockTops(card, blocks.map((b) => b.length), o);
+  return blocks.flatMap((block, bi) =>
+    block.map((line, j) => {
+      const fit = fitText(line, o.fontSize, maxWidth, measure);
+      const width = measure(fit.text, fit.size);
+      const align = lineAlign(o.align, bi, blocks.length);
+      const x =
+        align === 'left'
+          ? card.x + o.padX
+          : align === 'right'
+            ? card.x + card.width - o.padX - width
+            : card.x + (card.width - width) / 2;
+      const top = tops[bi] + j * (o.fontSize + o.lineGap);
+      return { text: fit.text, x, y: card.y + top + fit.size * BASELINE_RATIO, size: fit.size };
+    }),
+  );
 }

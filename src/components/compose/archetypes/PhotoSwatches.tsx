@@ -7,6 +7,7 @@ import { getBaseLayout, resolveRects } from './cardLayouts';
 import { shouldShowLabel } from './freeformLayout';
 import type { GeneratedSwatch } from './freeformLayout';
 import { layoutLabelLines } from './labelLayout';
+import type { LabelText } from './labelLayout';
 import { formatRGB, getContrastTextColor, useFontFactory, wrapMetadataInBlur } from './shared';
 import type { ArchetypeProps } from './types';
 
@@ -35,10 +36,10 @@ export function PhotoSwatches({
         if (!color) return null;
         const textColor = getContrastTextColor(color.hslLightness);
 
-        const name = config.showName ? color.name : null;
+        const name = config.showName ? { text: color.name, wrap: true as const } : null;
         const hex = config.showHex ? color.hex : null;
         const lines = (config.labelOrder === 'name-first' ? [name, hex] : [hex, name]).filter(
-          (line): line is string => line !== null,
+          (line): line is LabelText => line !== null,
         );
         if (config.showRGB) lines.push(formatRGB(color.rgb));
 

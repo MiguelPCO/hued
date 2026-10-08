@@ -1,4 +1,4 @@
-import { fitText, layoutLabelLines } from '../labelLayout';
+import { fitText, layoutLabelLines, wrapLine } from '../labelLayout';
 import type { LabelOptions } from '../labelLayout';
 
 // 5 design px per character per 10 px of font size.
@@ -106,5 +106,57 @@ describe('layoutLabelLines', () => {
 
   it('returns nothing for no lines', () => {
     expect(layoutLabelLines(card, [], base, measure)).toEqual([]);
+  });
+});
+
+describe('wrapLine', () => {
+  it('leaves a name that fits, or has no space, on one line', () => {
+    expect(wrapLine('Pino', 10, 100, measure)).toEqual(['Pino']);
+    expect(wrapLine('Abcdefghijklmnop', 10, 60, measure)).toEqual(['Abcdefghijklmnop']);
+  });
+
+  it('breaks at the space that balances the two halves', () => {
+    expect(wrapLine('Adrift on the Nile', 10, 60, measure)).toEqual(['Adrift on', 'the Nile']);
+    expect(wrapLine('Sea Foam Green Blue', 10, 60, measure)).toEqual(['Sea Foam', 'Green Blue']);
+  });
+});
+
+describe('layoutLabelLines — wrapping a name', () => {
+  const name = { text: 'Adrift on the Nile', wrap: true as const };
+
+  it('puts the second part right under the first and keeps the hex below them', () => {
+    const [first, second, hex] = layoutLabelLines(card, [name, '#264414'], base, measure);
+
+    expect([first.text, second.text, hex.text]).toEqual(['Adrift on', 'the Nile', '#264414']);
+    expect(second.y - first.y).toBe(14);
+    expect(hex.y - second.y).toBe(14);
+    expect(first.size).toBe(10);
+  });
+
+  it('wraps nothing that was not marked, and nothing that fits', () => {
+    const plain = layoutLabelLines(card, ['Adrift on the Nile'], base, measure);
+    const fits = layoutLabelLines(card, [{ text: 'Pino', wrap: true }], base, measure);
+
+    expect(plain).toHaveLength(1);
+    expect(fits).toHaveLength(1);
+  });
+
+  it('keeps both halves together when the label is split top and bottom', () => {
+    const [first, second, hex] = layoutLabelLines(
+      card,
+      [name, '#264414'],
+      { ...base, position: 'split' },
+      measure,
+    );
+
+    expect(second.y - first.y).toBe(14);
+    expect(hex.y).toBeGreaterThan(card.y + 80);
+  });
+
+  it('shrinks the name on one line when the card has no room for a second', () => {
+    const lines = layoutLabelLines({ ...card, height: 30 }, [name], base, measure);
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0].size).toBeLessThan(10);
   });
 });
