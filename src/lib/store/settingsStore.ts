@@ -17,7 +17,6 @@ const mmkvStorage: StateStorage = {
 interface SettingsState {
   onboardingCompleted: boolean;
   analyticsPromptShown: boolean;
-  samplesSeeded: boolean;
   lastArchetype: ArchetypeId | null;
   defaultFont: FontKey;
   subscriptionStatus: SubscriptionStatus;
@@ -32,7 +31,6 @@ interface SettingsState {
 interface SettingsActions {
   completeOnboarding: () => void;
   markAnalyticsPromptShown: () => void;
-  markSamplesSeeded: () => void;
   setLastArchetype: (id: ArchetypeId) => void;
   setDefaultFont: (font: FontKey) => void;
   setSubscriptionStatus: (status: SubscriptionStatus, expiresAt?: number) => void;
@@ -55,7 +53,6 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     (set, get) => ({
       onboardingCompleted: false,
       analyticsPromptShown: false,
-      samplesSeeded: false,
       lastArchetype: null,
       defaultFont: 'sans',
       subscriptionStatus: 'free',
@@ -70,7 +67,6 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 
       markAnalyticsPromptShown: () => set({ analyticsPromptShown: true }),
 
-      markSamplesSeeded: () => set({ samplesSeeded: true }),
 
       setLastArchetype: (id) => set({ lastArchetype: id }),
 

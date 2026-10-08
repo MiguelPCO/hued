@@ -13,8 +13,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:ci": "pnpm typecheck && pnpm lint && jest --coverage --ci",
-    "preprocess-colors": "tsx scripts/preprocess-colors.ts",
-    "generate-samples": "tsx scripts/generate-sample-images.ts"
+    "preprocess-colors": "tsx scripts/preprocess-colors.ts"
   },
   "dependencies": {
     "@expo-google-fonts/archivo-black": "^0.4.1",

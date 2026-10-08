@@ -14,7 +14,6 @@ import { Text } from '@/components/ui/Text';
 import { createCollection, deleteCollection, listCollections, renameCollection } from '@/lib/db/collections';
 import { listPalettes } from '@/lib/db/palettes';
 import { processCapture } from '@/lib/capture/processCapture';
-import { seedSamplePalettesOnce } from '@/lib/samples/seedSamplePalettes';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 import type { Collection } from '@/types/palette';
 
@@ -44,14 +43,8 @@ export default function HomeScreen() {
   }
 
   const loadHome = useCallback(() => {
-    // A failed seed must not block the home: log it and show whatever the library holds.
-    seedSamplePalettesOnce()
-      .catch(Sentry.captureException)
-      .then(() => {
-        // After the seed so the "Ejemplos" collection exists on the very first launch.
-        listCollections().then(setCollections).catch(Sentry.captureException);
-        return listPalettes();
-      })
+    listCollections().then(setCollections).catch(Sentry.captureException);
+    listPalettes()
       .then((p) => {
         setHasPalettes(p.length > 0);
         setLoadFailed(false);
