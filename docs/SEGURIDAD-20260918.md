@@ -23,8 +23,8 @@
 5. iOS: exportar pide «añadir fotos», no acceso completo.
 
 **Pendiente**
-- Pedir el consentimiento también en el primer arranque (onboarding). Con solo el interruptor, casi nadie activará la analítica.
-- `pnpm audit`: quedan `brace-expansion` (9), `browserslist` (2), `form-data`, `@babel/core` y `baseline-browser-mapping`, de desarrollo y con parche dentro del mismo major (otro override si quieres). `uuid` 7→11 y `decode-uri-component` 0.2→0.5 cambian de major; el segundo sí va en el bundle (expo-router → query-string); hay que esperar a que expo-router lo suba.
+- ~~Pedir el consentimiento también en el primer arranque~~ Hecho: `AnalyticsConsentSheet` en `app/_layout.tsx`. Falta probarlo en el móvil.
+- `pnpm audit` (08-10-2026): 7 (0 críticas, 4 altas, 3 moderadas). El override de `shell-quote` pasó a `^1.11.0` (la 1.8.4–1.10 tenía una inyección de comandos crítica, vía `react-devtools-core`, solo desarrollo). Quedan `node-forge` y `compression` (de `@expo/cli`), `braces` y `sprintf-js` (de jest), `source-map-js` (metro) y `uuid` (xcode), todos de desarrollo y sin parche dentro de su major o a la espera de Expo. `decode-uri-component` 0.2→0.5 cambia de major y sí va en el bundle (expo-router → query-string): hay que esperar a que expo-router lo suba.
 - `SYSTEM_ALERT_WINDOW` sale de la plantilla de Expo (el menú de desarrollo). Si Play pregunta, se puede bloquear en release.
 
 **Qué tienes que hacer a mano**
@@ -64,5 +64,5 @@ Google Play rechaza permisos que no se justifican en la ficha, y cada uno añade
 ## Comprobaciones
 
 - `pnpm typecheck`: OK.
-- `pnpm test`: 19 suites, 140 tests OK.
-- `pnpm lint`: falla con 19 errores de `react-hooks/*`, todos en archivos que no se han tocado (`Sheet.tsx`, `CornerControl.tsx`, `PaletteSizeControl.tsx`, `LibreEditOverlay.tsx`, `app/(tabs)/index.tsx`). Ya estaban antes. `eslint app/paywall.tsx` pasa limpio.
+- `pnpm test`: 74 suites, 1001 tests OK (08-10-2026).
+- `pnpm lint`: OK, sin errores ni avisos (08-10-2026). Los 19 errores de `react-hooks/*` que había el 18-09 ya no están.
