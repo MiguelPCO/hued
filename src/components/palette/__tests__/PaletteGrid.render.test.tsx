@@ -22,7 +22,7 @@ jest.mock('../PaletteCard', () => {
 const latest = (id: string) => mockCards.filter((c) => c.palette.id === id).at(-1)!;
 
 const A = makePalette({ id: 'a', colors: [makeColor({ name: 'Rojo' })] });
-const B = makePalette({ id: 'b', colors: [makeColor({ name: 'Azul' })], isFavorite: true });
+const B = makePalette({ id: 'b', colors: [makeColor({ name: 'Azul', hex: '#1E5AC8', rgb: [30, 90, 200] })], isFavorite: true });
 
 type GridProps = ComponentProps<typeof PaletteGrid>;
 
@@ -67,6 +67,18 @@ describe('PaletteGrid', () => {
   it('filters by the search query over color names', async () => {
     setup({ query: 'rojo' });
 
+    expect(await screen.findByText('card:a')).toBeOnTheScreen();
+    expect(screen.queryByText('card:b')).toBeNull();
+  });
+
+  it('also finds a palette by the basic color of its swatches and by hex', async () => {
+    // The extracted names come from an English dataset, so "azul" is never in them.
+    const { rerenderWith } = setup({ query: 'azul' });
+
+    expect(await screen.findByText('card:b')).toBeOnTheScreen();
+    expect(screen.queryByText('card:a')).toBeNull();
+
+    rerenderWith({ query: '#c217' });
     expect(await screen.findByText('card:a')).toBeOnTheScreen();
     expect(screen.queryByText('card:b')).toBeNull();
   });

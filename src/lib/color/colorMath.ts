@@ -35,3 +35,19 @@ export function rgbToLab(r: number, g: number, b: number): [number, number, numb
   const f = (t: number) => (t > 0.008856 ? t ** (1 / 3) : 7.787 * t + 16 / 116);
   return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
 }
+
+// Basic Spanish color word for a swatch, so search finds "azul" even though the dataset names are English.
+export function colorFamily(r: number, g: number, b: number): string {
+  const [h, s, l] = rgbToHsl(r, g, b);
+  if (l < 0.12) return 'negro';
+  if (l > 0.92) return 'blanco';
+  if (s < 0.12) return 'gris';
+  if (h < 15 || h >= 345) return l > 0.7 ? 'rosa' : 'rojo';
+  if (h < 45) return l < 0.45 ? 'marrón' : 'naranja';
+  if (h < 70) return l < 0.35 ? 'marrón' : 'amarillo';
+  if (h < 165) return 'verde';
+  if (h < 200) return 'turquesa';
+  if (h < 260) return 'azul';
+  if (h < 300) return 'morado';
+  return 'rosa';
+}

@@ -6,6 +6,7 @@ import { PaletteCard } from './PaletteCard';
 import { Text } from '@/components/ui/Text';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 import { listPalettes } from '@/lib/db/palettes';
+import { colorFamily } from '@/lib/color/colorMath';
 import { paletteMatchesQuery } from '@/lib/search/normalize';
 import type { Palette } from '@/types/palette';
 
@@ -27,7 +28,10 @@ export function filterPalettes(
       if (filter === 'favorites') return p.isFavorite;
       return p.collectionId === filter;
     })
-    .filter((p) => paletteMatchesQuery(p.colors.map((c) => c.name), query));
+    .filter((p) => paletteMatchesQuery(
+      p.colors.flatMap((c) => [c.name, colorFamily(...c.rgb), c.hex]),
+      query
+    ));
 }
 
 function SkeletonCard() {
