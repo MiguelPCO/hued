@@ -5,15 +5,19 @@ Palette-from-photo app: extract a color palette from a picture, compose it back 
 ## Language
 
 **Archetype**:
-A named, predefined visual layout for compositing extracted colors over the source photo (e.g. Strip, Grid, Editorial). Each archetype is a pure rendering function of `(palette, config)` with hardcoded swatch geometry.
+A named visual layout for compositing extracted colors over the full-bleed source photo (Pila, Mosaico, Escalonado, Columnas, Libre). Each archetype is a pure rendering function of `(palette, config)`; the four card archetypes take their swatch geometry from a **base layout**.
 _Avoid_: Template, layout, style (style is a narrower concept — see Card style below).
 
+**Base layout**:
+The approved arrangement of one card archetype for one palette size (3-8): where each card goes (in reading order, which is also the color order) plus the look it comes with (corners, opacity, font, size, label placement). 24 of them live in `src/data/baseLayouts.ts`. Picking an archetype or changing the palette size applies the whole base look; the user's size / spacing / opacity / text settings then adjust it.
+_Avoid_: Preset, template (a base layout is data for an archetype, not a separate thing the user picks).
+
 **Libre archetype**:
-The archetype where swatch geometry is not hardcoded but user-placed: the user drags each swatch to any position on the photo and picks its size, instead of the archetype dictating fixed positions. Distinct from the other archetypes, which have no per-swatch position data at all.
+The archetype where swatch geometry is user-placed: the user drags each swatch to any position on the photo and picks its size. It starts from the base layout of the archetype it was chosen from (`libreSource`) and returns to it on reset or when the palette size changes. Distinct from the other archetypes, which have no per-swatch position data at all.
 _Avoid_: Freeform mode, custom layout (this repo's canonical name for the feature is "Libre", matching the Spanish-language UI).
 
 **Swatch**:
-A single rendered color block for one extracted color, with its metadata label (hex/name/RGB, per the global label toggles). In the five fixed archetypes, swatch position and size are baked into the archetype's render code. In the Libre archetype, swatch position and size are per-swatch, user-controlled data.
+A single rendered color block for one extracted color, with its metadata label (hex/name/RGB, per the global label toggles). In the four card archetypes, swatch position and size come from the base layout. In the Libre archetype, swatch position and size are per-swatch, user-controlled data.
 
 **Card style**:
 The fill treatment of a swatch's background — `filled`, `outlined`, or `blur` — orthogonal to the archetype's swatch geometry.

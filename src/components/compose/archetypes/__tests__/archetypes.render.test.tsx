@@ -6,11 +6,11 @@ import { Primitive } from '@/lib/tokens';
 import type { ArchetypeId, FreeformSwatch, LayoutConfig } from '@/types/palette';
 import { makeColor, makeColors, makeLayoutConfig, makePalette } from '@test/factories';
 import { findAll, findTexts } from '@test/skiaTree';
-import { generateScatterLayout } from '../freeformLayout';
+import { getBaseLayout, resolveRects } from '../cardLayouts';
 
 const W = 360;
 const H = 450;
-const IDS: ArchetypeId[] = ['strip', 'editorial', 'grid', 'banner', 'side', 'libre'];
+const IDS: ArchetypeId[] = ['pila', 'mosaico', 'escalonado', 'columnas', 'libre'];
 const GREY = '#E5E5E5';
 
 interface Rect { x: number; y: number; width: number; height: number }
@@ -28,10 +28,10 @@ function draw(
   return { json: view.toJSON(), palette, config };
 }
 
-/** Bloques de color de las muestras (Banner los pinta con sufijo alfa "CC"). */
+/** Bloques de color de las muestras. */
 function swatches(json: unknown, hexes: string[]) {
   const nodes = [...findAll(json, 'SkRect'), ...findAll(json, 'SkRoundedRect'), ...findAll(json, 'SkCircle')];
-  return nodes.filter((n) => hexes.some((h) => n.props.color === h || n.props.color === `${h}CC`));
+  return nodes.filter((n) => hexes.includes(String(n.props.color)));
 }
 
 const rectOf = (node: { props: Record<string, unknown> }) => node.props as unknown as Rect;
@@ -41,7 +41,7 @@ describe.each(IDS)('%s archetype — shared behaviour', (id) => {
     const { json, palette } = draw(id, { colors: n });
 
     const hexes = palette.colors.map((c) => c.hex);
-    const drawn = swatches(json, hexes).map((node) => String(node.props.color).slice(0, 7));
+    const drawn = swatches(json, hexes).map((node) => String(node.props.color));
 
     expect(drawn.sort()).toEqual([...hexes].sort());
   });
@@ -65,13 +65,10 @@ describe.each(IDS)('%s archetype — shared behaviour', (id) => {
 
     // the photo placeholder is still drawn...
     expect(findAll(json, 'SkRect').filter((r) => r.props.color === GREY)).toHaveLength(1);
-    // ...but there are no color blocks, no labels (editorial must not read colors[0].name)
+    // ...but there are no color blocks and no labels
     expect(findAll(json, 'SkRoundedRect')).toHaveLength(0);
     expect(findAll(json, 'SkCircle')).toHaveLength(0);
     expect(findTexts(json)).toEqual([]);
-    // only decoration remains: editorial's transparent gradient host, banner's translucent strip
-    const otherRects = findAll(json, 'SkRect').filter((r) => r.props.color !== GREY).map((r) => r.props.color);
-    otherRects.forEach((c) => expect(['transparent', 'rgba(0,0,0,0.35)']).toContain(c));
   });
 
   it('draws no labels when every label toggle is off', () => {
@@ -104,7 +101,7 @@ describe.each(IDS)('%s archetype — shared behaviour', (id) => {
   });
 });
 
-describe.each(['strip', 'grid', 'banner', 'side', 'libre'] as ArchetypeId[])('%s archetype — labels', (id) => {
+describe.each(IDS)('%s archetype — labels', (id) => {
   it('shows every color name when showName is on', () => {
     const { json, palette } = draw(id, { config: { showHex: false, showName: true, showRGB: false } });
 
@@ -139,155 +136,64 @@ describe.each(['strip', 'grid', 'banner', 'side', 'libre'] as ArchetypeId[])('%s
   });
 });
 
-describe('strip archetype', () => {
-  it('puts the photo on the top 70% and five 72px bars below it', () => {
-    const { json, palette } = draw('strip');
+describe('card archetypes (pila, mosaico, escalonado, columnas)', () => {
+  const CARDS = ['pila', 'mosaico', 'escalonado', 'columnas'] as const;
 
-    const photo = findAll(json, 'SkRect').find((r) => r.props.color === GREY)!;
-    const bars = swatches(json, palette.colors.map((c) => c.hex)).map(rectOf);
+  it.each(CARDS)('%s never crops the photo into a panel: it fills the whole canvas', (id) => {
+    const { json } = draw(id, { image: true });
 
-    expect(rectOf(photo)).toMatchObject({ x: 0, y: 0, width: 360, height: 315 });
-    bars.forEach((bar, i) => expect(bar).toMatchObject({ x: i * 72, y: 315, width: 72, height: 135 }));
-  });
-});
-
-describe('grid archetype', () => {
-  it.each([3, 4, 5, 6, 7, 8])('keeps %i cells inside the bottom half and fills it exactly', (n) => {
-    const { json, palette } = draw('grid', { colors: n });
-
-    const cells = swatches(json, palette.colors.map((c) => c.hex)).map(rectOf);
-
-    cells.forEach((c) => {
-      expect(c.x).toBeGreaterThanOrEqual(0);
-      expect(c.x + c.width).toBeLessThanOrEqual(W + 0.001);
-      expect(c.y).toBeGreaterThanOrEqual(H / 2 - 0.001);
-      expect(c.y + c.height).toBeLessThanOrEqual(H + 0.001);
-    });
-    expect(cells.reduce((area, c) => area + c.width * c.height, 0)).toBeCloseTo(W * (H / 2), 3);
+    expect(rectOf(findAll(json, 'SkImage')[0])).toMatchObject({ x: 0, y: 0, width: W, height: H });
   });
 
-  it('makes the last cell full-width when the count is odd', () => {
-    const { json, palette } = draw('grid', { colors: 5 });
+  it.each(CARDS)('%s draws each card where its base layout puts it, with the configured look', (id) => {
+    const { json, palette } = draw(id, { config: { cornerRadius: 12, cardOpacity: 60 } });
 
-    const last = rectOf(swatches(json, palette.colors.map((c) => c.hex)).at(-1)!);
+    const expected = getBaseLayout(id, 5).rects;
+    const drawn = findAll(json, 'SkRoundedRect');
 
-    expect(last.width).toBe(360);
-  });
-});
-
-describe('banner archetype', () => {
-  it('overlays a translucent 48px strip at the bottom with five bars', () => {
-    const { json, palette } = draw('banner');
-
-    const overlay = findAll(json, 'SkRect').find((r) => r.props.color === 'rgba(0,0,0,0.35)')!;
-    const bars = swatches(json, palette.colors.map((c) => c.hex)).map(rectOf);
-
-    expect(rectOf(overlay)).toMatchObject({ x: 0, y: 402, width: 360, height: 48 });
-    bars.forEach((bar, i) => expect(bar).toMatchObject({ x: i * 72, y: 402, width: 72, height: 48 }));
-  });
-
-  it('paints each bar with 80% opacity so the photo shows through', () => {
-    const { json, palette } = draw('banner');
-
-    palette.colors.forEach((c) => {
-      expect(findAll(json, 'SkRect').some((r) => r.props.color === `${c.hex}CC`)).toBe(true);
+    expect(drawn).toHaveLength(5);
+    drawn.forEach((node, i) => {
+      const { x, y, width, height } = expected[i];
+      expect(node.props).toMatchObject({ x, y, width, height, r: 12, opacity: 0.6, color: palette.colors[i].hex });
     });
   });
-});
 
-describe('side archetype', () => {
-  it('puts the photo on the left 60% and five 90px rows on the right', () => {
-    const { json, palette } = draw('side');
+  it.each(CARDS)('%s applies the size and spacing scales to its base layout', (id) => {
+    const config = { cardWidthScale: 80, cardHeightScale: 120, gapScale: 130 };
+    const { json } = draw(id, { config });
 
-    const photo = findAll(json, 'SkRect').find((r) => r.props.color === GREY)!;
-    const rows = swatches(json, palette.colors.map((c) => c.hex)).map(rectOf);
-
-    expect(rectOf(photo)).toMatchObject({ x: 0, y: 0, width: 216, height: 450 });
-    rows.forEach((row, i) => expect(row).toMatchObject({ x: 216, y: i * 90, width: 144, height: 90 }));
-  });
-});
-
-describe('H-04 — Strip, Banner and Side adapt to palette sizes other than 5', () => {
-  // Franja y Banner reparten `width / n`; Lateral reparte `height / n` (n = nº de colores).
-  const STRIPS: [ArchetypeId, 'width' | 'height'][] = [
-    ['strip', 'width'],
-    ['banner', 'width'],
-    ['side', 'height'],
-  ];
-
-  function fillsStrip(id: ArchetypeId, axis: 'width' | 'height', n: number) {
-    const { json, palette } = draw(id, { colors: n });
-    const rects = swatches(json, palette.colors.map((c) => c.hex)).map(rectOf);
-
-    rects.forEach((r) => {
-      expect(r.x).toBeGreaterThanOrEqual(0);
-      expect(r.y).toBeGreaterThanOrEqual(0);
-      expect(r.x + r.width).toBeLessThanOrEqual(W + 0.001);
-      expect(r.y + r.height).toBeLessThanOrEqual(H + 0.001);
+    const expected = resolveRects(getBaseLayout(id, 5).rects, config);
+    findAll(json, 'SkRoundedRect').forEach((node, i) => {
+      const { x, y, width, height } = expected[i];
+      expect(node.props).toMatchObject({ x, y, width, height });
     });
-    const covered = rects.reduce((sum, r) => sum + r[axis], 0);
-    expect(covered).toBeCloseTo(axis === 'width' ? W : H, 3);
-  }
-
-  it.each(STRIPS)('%s fills its strip with the default 5 colors', (id, axis) => {
-    fillsStrip(id, axis, 5);
   });
 
-  for (const [id, axis] of STRIPS) {
-    for (const size of [3, 8]) {
-      it(`${id} keeps ${size} swatches inside the canvas and filling the strip (H-04)`, () => {
-        fillsStrip(id, axis, size);
+  it.each(CARDS)('%s places the label lines with the configured position, order and size', (id) => {
+    const { json, palette } = draw(id, {
+      config: { showHex: true, showName: true, labelOrder: 'hex-first', labelPosition: 'top', labelAlign: 'left', fontSize: 12 },
+    });
+
+    const texts = findAll(json, 'SkText');
+    expect(texts).toHaveLength(10);
+    expect(texts[0].props.text).toBe(palette.colors[0].hex);
+    expect(texts[1].props.text).toBe(palette.colors[0].name);
+    expect((texts[1].props.y as number) - (texts[0].props.y as number)).toBeCloseTo(12 + getBaseLayout(id, 5).pad.lineGap);
+  });
+
+  it.each(CARDS)('%s keeps 3 and 8 cards inside the canvas (H-04)', (id) => {
+    [3, 8].forEach((n) => {
+      const { json, palette } = draw(id, { colors: n });
+      const cards = swatches(json, palette.colors.map((c) => c.hex)).map(rectOf);
+
+      expect(cards).toHaveLength(n);
+      cards.forEach((c) => {
+        expect(c.x).toBeGreaterThanOrEqual(0);
+        expect(c.y).toBeGreaterThanOrEqual(0);
+        expect(c.x + c.width).toBeLessThanOrEqual(W + 0.001);
+        expect(c.y + c.height).toBeLessThanOrEqual(H + 0.001);
       });
-    }
-  }
-});
-
-describe('editorial archetype', () => {
-  it('centers one 14px dot per color on a horizontal line at 82% of the height', () => {
-    const { json, palette } = draw('editorial');
-
-    const dots = findAll(json, 'SkCircle').filter((c) => palette.colors.some((col) => col.hex === c.props.color));
-
-    expect(dots).toHaveLength(5);
-    dots.forEach((dot) => expect(dot.props).toMatchObject({ r: 14, cy: 369 }));
-    const xs = dots.map((d) => d.props.cx as number);
-    expect((xs[0] + xs[4]) / 2).toBeCloseTo(180, 5);
-  });
-
-  it('always writes labels in white over the dark gradient', () => {
-    const { json } = draw('editorial');
-
-    findAll(json, 'SkText').forEach((t) => expect(t.props.color).toBe('#FFFFFF'));
-  });
-
-  it('captions the dominant (first) color name only', () => {
-    const { json, palette } = draw('editorial', { config: { showHex: false, showName: true } });
-
-    expect(findTexts(json)).toEqual([palette.colors[0].name]);
-  });
-
-  it('omits the caption when showName is off', () => {
-    const { json, palette } = draw('editorial', { config: { showHex: true, showName: false } });
-
-    expect(findTexts(json)).toEqual(palette.colors.map((c) => c.hex));
-  });
-
-  it('never draws RGB labels (not part of this layout)', () => {
-    const { json } = draw('editorial', { config: { showRGB: true } });
-
-    expect(findTexts(json).some((t) => t.startsWith('RGB'))).toBe(false);
-  });
-
-  it('wraps each hex label and the caption in a blur when cardStyle is blur', () => {
-    const { json } = draw('editorial', { config: { cardStyle: 'blur', showHex: true, showName: true } });
-
-    expect(findAll(json, 'SkBackdropBlur')).toHaveLength(5 + 1);
-  });
-
-  it('draws the dark gradient over the lower part of the photo', () => {
-    const { json } = draw('editorial');
-
-    expect(findAll(json, 'SkLinearGradient')).toHaveLength(1);
+    });
   });
 });
 
@@ -308,10 +214,10 @@ describe('libre archetype', () => {
     });
   });
 
-  it('falls back to a scatter layout when the stored swatches do not match the colors', () => {
-    const { json } = draw('libre', { config: { freeformSwatches: custom(3) } }); // 3 guardadas, 5 colores
+  it('falls back to the base layout it came from when the stored swatches do not match the colors', () => {
+    const { json } = draw('libre', { config: { freeformSwatches: custom(3), libreSource: 'columnas' } }); // 3 guardadas, 5 colores
 
-    const expected = generateScatterLayout(5, W, H);
+    const expected = getBaseLayout('columnas', 5).rects;
     const drawn = findAll(json, 'SkRoundedRect');
 
     expect(drawn).toHaveLength(5);
@@ -347,13 +253,13 @@ describe('libre archetype', () => {
     expect(findTexts(json)).toHaveLength(4);
   });
 
-  it('offsets labels 6px inside the swatch', () => {
+  it('offsets labels by the padding of the base layout it came from', () => {
     const { json } = draw('libre', {
       config: { freeformSwatches: custom(5), showHex: true, showName: false, showRGB: false },
     });
 
     const firstLabel = findAll(json, 'SkText')[0];
 
-    expect(firstLabel.props.x).toBe(10 + 6);
+    expect(firstLabel.props.x).toBe(10 + getBaseLayout('pila', 5).pad.x);
   });
 });

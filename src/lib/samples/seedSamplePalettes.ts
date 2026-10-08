@@ -1,6 +1,6 @@
 import { Asset } from 'expo-asset';
 
-import { ARCHETYPES } from '@/data/archetypes';
+import { baseStyleConfig } from '@/components/compose/archetypes/cardLayouts';
 import { SAMPLE_COLLECTION_NAME, SAMPLE_PALETTES, sampleWeights } from '@/data/samplePalettes';
 import { rgbToHsl, rgbToLab } from '@/lib/color/colorMath';
 import { findColorName } from '@/lib/color/colorNames';
@@ -83,7 +83,7 @@ async function seed(): Promise<void> {
       colors: toExtractedColors(sample.hexes),
       layoutConfig: {
         ...DEFAULT_LAYOUT_CONFIG,
-        ...ARCHETYPES[sample.archetypeId].defaultConfig,
+        ...baseStyleConfig(sample.archetypeId, sample.hexes.length),
         archetypeId: sample.archetypeId,
         paletteSize: sample.hexes.length,
       },

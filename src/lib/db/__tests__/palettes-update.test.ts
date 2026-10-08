@@ -51,7 +51,7 @@ describe('updatePaletteColors', () => {
 
 describe('updatePaletteLayout', () => {
   it('runs UPDATE with JSON-serialized layout_config', async () => {
-    const config: LayoutConfig = { ...DEFAULT_LAYOUT_CONFIG, archetypeId: 'editorial', showHex: false };
+    const config: LayoutConfig = { ...DEFAULT_LAYOUT_CONFIG, archetypeId: 'escalonado', showHex: false };
     await updatePaletteLayout('palette-2', config);
     expect(mockDb.runAsync).toHaveBeenCalledWith(
       expect.stringContaining('UPDATE palettes SET layout_config'),

@@ -1,4 +1,3 @@
-import { ARCHETYPES } from '@/data/archetypes';
 import { savePalette } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
 import { optimize, thumbnail } from '@/lib/utils/image';
@@ -13,10 +12,7 @@ export async function processCapture(uri: string, source: CaptureSource): Promis
     imageUri: optimizedUri,
     thumbnailUri: thumbUri,
     colors: [],
-    layoutConfig: {
-      ...DEFAULT_LAYOUT_CONFIG,
-      ...ARCHETYPES[DEFAULT_LAYOUT_CONFIG.archetypeId].defaultConfig,
-    },
+    layoutConfig: DEFAULT_LAYOUT_CONFIG,
     meta: {
       capturedAt: Date.now(),
       source,

@@ -15,12 +15,6 @@ jest.mock('expo-file-system/legacy', () => ({
   deleteAsync: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/lib/db/client');
-// Isolate this pipeline test from the real archetype component tree (which
-// transitively imports @shopify/react-native-skia) — this test only needs
-// the default layout config's defaultConfig merge, a plain data lookup.
-jest.mock('@/data/archetypes', () => ({
-  ARCHETYPES: { strip: { defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' } } },
-}));
 
 import { getDb } from '@/lib/db/client';
 
@@ -52,8 +46,26 @@ describe('processCapture', () => {
     const palette = await processCapture('file:///raw.jpg', 'camera');
 
     expect(palette.colors).toEqual([]);
-    expect(palette.layoutConfig.archetypeId).toBe('strip');
+    expect(palette.layoutConfig.archetypeId).toBe('pila');
     expect(palette.layoutConfig.fontFamily).toBe('sans');
+  });
+
+  it('starts with the look of the Pila base layout for 5 colors', async () => {
+    const palette = await processCapture('file:///raw.jpg', 'camera');
+
+    expect(palette.layoutConfig).toMatchObject({
+      paletteSize: 5,
+      cornerRadius: 16,
+      cardOpacity: 100,
+      cardWidthScale: 100,
+      cardHeightScale: 100,
+      gapScale: 100,
+      fontSize: 10,
+      labelPosition: 'split',
+      labelOrder: 'name-first',
+      labelAlign: 'left',
+      libreSource: 'pila',
+    });
   });
 
   it('records the given source and "original" aspect ratio on the returned palette meta', async () => {

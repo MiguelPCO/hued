@@ -1,7 +1,11 @@
 import { Canvas, Group, useImage } from '@shopify/react-native-skia';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 
-import { getCardFrame, shouldRenderWatermark } from '@/components/compose/archetypes/shared';
+import {
+  IMAGE_CORNER_RADIUS,
+  getCardFrame,
+  shouldRenderWatermark,
+} from '@/components/compose/archetypes/shared';
 import { getWatermarkTapRegion, Watermark } from '@/components/compose/archetypes/Watermark';
 import { ARCHETYPES } from '@/data/archetypes';
 import { useSettingsStore } from '@/lib/store/settingsStore';
@@ -49,7 +53,7 @@ export function ArchetypeCanvas({ palette, config, onWatermarkPress, maxHeight, 
 
           {overlay}
           {watermarkShown && (
-            <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={config.cornerRadius} />
+            <Watermark width={CANVAS_W} height={CANVAS_H} cornerRadius={IMAGE_CORNER_RADIUS} />
           )}
         </Group>
       </Canvas>

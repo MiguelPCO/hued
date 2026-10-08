@@ -1,9 +1,12 @@
 import type { ReactElement, ReactNode } from 'react';
 import { useMemo } from 'react';
-import { BackdropBlur, matchFont, rect, RoundedRect, rrect } from '@shopify/react-native-skia';
-import type { SkRRect } from '@shopify/react-native-skia';
+import { BackdropBlur, matchFont, rect, RoundedRect, rrect, Skia } from '@shopify/react-native-skia';
+import type { SkFont, SkRRect } from '@shopify/react-native-skia';
 import { Platform } from 'react-native';
 
+import { isSystemFont } from '@/data/fonts';
+import type { FontKey, SystemFontKey } from '@/data/fonts';
+import { getBundledTypeface } from '@/lib/fonts/skiaTypefaces';
 import { Primitive } from '@/lib/tokens';
 import type { SubscriptionStatus } from '@/lib/store/settingsStore';
 import type { LayoutConfig } from '@/types/palette';
@@ -16,14 +19,14 @@ import type { LayoutConfig } from '@/types/palette';
 // behavior in `Watermark.tsx`'s doc comment.
 export const PILL_CORNER_RADIUS = 9999;
 
+// Corners of the image itself. Independent of `config.cornerRadius`, which only rounds the color cards.
+export const IMAGE_CORNER_RADIUS = 16;
+
 // Android values must be system font-alias strings Skia's default FontMgr can
 // resolve (see /system/etc/fonts.xml) — a literal family name like "Roboto"
 // isn't one of those aliases and silently falls back to Skia's built-in
 // default typeface, making the "Moderna" option look like a no-op.
-export const FONT_FAMILIES: Record<
-  'sans' | 'serif' | 'mono' | 'condensed' | 'display',
-  { ios: string; android: string }
-> = {
+export const FONT_FAMILIES: Record<SystemFontKey, { ios: string; android: string }> = {
   sans: { ios: 'Helvetica Neue', android: 'sans-serif' },
   serif: { ios: 'Georgia', android: 'serif' },
   mono: { ios: 'Courier', android: 'monospace' },
@@ -58,15 +61,20 @@ export function shouldRenderWatermark(watermarkVisible: boolean, status: Subscri
   return watermarkVisible || status === 'free';
 }
 
-export function useArchetypeFonts(
-  fontKey: 'sans' | 'serif' | 'mono' | 'condensed' | 'display',
-  hexSize: number,
-  nameSize: number
-) {
-  const fontFamily = Platform.OS === 'ios' ? FONT_FAMILIES[fontKey].ios : FONT_FAMILIES[fontKey].android;
-  const hexFont = useMemo(() => matchFont({ fontFamily, fontSize: hexSize }), [fontFamily, hexSize]);
-  const nameFont = useMemo(() => matchFont({ fontFamily, fontSize: nameSize }), [fontFamily, nameSize]);
-  return { hexFont, nameFont };
+/**
+ * A font of the given family at any size. Bundled families come from the typefaces decoded at
+ * startup (skiaTypefaces.ts); one that isn't there (failed to load) falls back to sans.
+ */
+export function makeFont(fontKey: FontKey, size: number): SkFont {
+  const typeface = isSystemFont(fontKey) ? null : getBundledTypeface(fontKey);
+  if (typeface) return Skia.Font(typeface, size);
+  const system = FONT_FAMILIES[isSystemFont(fontKey) ? fontKey : 'sans'];
+  return matchFont({ fontFamily: Platform.OS === 'ios' ? system.ios : system.android, fontSize: size });
+}
+
+/** `makeFont` for one family, as a function of the size (the label code asks for several sizes per render). */
+export function useFontFactory(fontKey: FontKey): (size: number) => SkFont {
+  return useMemo(() => (size: number) => makeFont(fontKey, size), [fontKey]);
 }
 
 export interface CardFrame {
@@ -90,7 +98,7 @@ export interface CardFrame {
  * swatch, so only the frosted color patch sits behind its own crisp text.
  */
 export function getCardFrame(config: LayoutConfig, width: number, height: number): CardFrame {
-  const clip = rrect(rect(0, 0, width, height), config.cornerRadius, config.cornerRadius);
+  const clip = rrect(rect(0, 0, width, height), IMAGE_CORNER_RADIUS, IMAGE_CORNER_RADIUS);
 
   let overlay: ReactElement | null = null;
   if (config.cardStyle === 'outlined') {
@@ -100,7 +108,7 @@ export function getCardFrame(config: LayoutConfig, width: number, height: number
         y={1}
         width={width - 2}
         height={height - 2}
-        r={config.cornerRadius}
+        r={IMAGE_CORNER_RADIUS}
         color={Primitive.white}
         strokeWidth={OUTLINE_STROKE_WIDTH}
         style="stroke"

@@ -13,8 +13,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArchetypeCanvas, CANVAS_H, CANVAS_W } from '@/components/compose/ArchetypeCanvas';
-import { generateScatterLayout } from '@/components/compose/archetypes/freeformLayout';
+import {
+  baseStyleConfig,
+  libreSeed,
+  NEUTRAL_SCALES,
+  scaleSwatches,
+} from '@/components/compose/archetypes/cardLayouts';
 import { EditTabs } from '@/components/palette/EditTabs';
+import type { ScaleKey } from '@/components/palette/EditTabs';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
@@ -34,7 +40,13 @@ import { trackEvent } from '@/lib/analytics/events';
 import { canExportToday } from '@/lib/subscription/exportGate';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
-import type { ExtractedColor, FreeformSwatch, LayoutConfig, Palette } from '@/types/palette';
+import type {
+  ArchetypeId,
+  ExtractedColor,
+  FreeformSwatch,
+  LayoutConfig,
+  Palette,
+} from '@/types/palette';
 
 const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
   { value: '1x', label: '1×' },
@@ -138,7 +150,7 @@ export default function PaletteScreen() {
     [updateConfig]
   );
 
-  // Seed a fresh scatter layout the moment libre becomes active with no (or
+  // Seed the base layout libre came from the moment libre becomes active with no (or
   // stale) swatch data — first time switching to it, or right after a
   // paletteSize change reset freeformSwatches to [] (ADR-0001). Runs through
   // the same updateConfig path as every other config field, so it's
@@ -148,15 +160,58 @@ export default function PaletteScreen() {
     if (config.archetypeId !== 'libre') return;
     if (config.freeformSwatches.length === palette.colors.length) return;
     updateConfig({
-      freeformSwatches: generateScatterLayout(palette.colors.length, CANVAS_W, CANVAS_H),
+      freeformSwatches: libreSeed(config.libreSource, palette.colors.length, config),
     });
   }, [palette, config, updateConfig]);
 
   const resetLibreLayout = useCallback(() => {
     if (!palette) return;
-    updateConfig({ freeformSwatches: generateScatterLayout(palette.colors.length, CANVAS_W, CANVAS_H) });
+    updateConfig((prev) => ({
+      ...NEUTRAL_SCALES,
+      freeformSwatches: libreSeed(prev.libreSource, palette.colors.length, NEUTRAL_SCALES),
+    }));
     trackEvent('config_changed', { config_key: 'freeformSwatches_reset' });
   }, [palette, updateConfig]);
+
+  // Picking a card archetype applies its whole base look (see baseStyleConfig); picking libre keeps the
+  // current look and starts from the layout you were on, with your size and spacing already applied.
+  const selectArchetype = useCallback(
+    (archetypeId: ArchetypeId) => {
+      if (!palette) return;
+      const count = palette.colors.length || palette.layoutConfig.paletteSize;
+      updateConfig((prev) => {
+        if (archetypeId === prev.archetypeId) return {};
+        if (archetypeId !== 'libre') {
+          return { archetypeId, freeformSwatches: [], ...baseStyleConfig(archetypeId, count) };
+        }
+        const libreSource = prev.archetypeId === 'libre' ? prev.libreSource : prev.archetypeId;
+        return { archetypeId, libreSource, freeformSwatches: libreSeed(libreSource, count, prev) };
+      });
+    },
+    [palette, updateConfig],
+  );
+
+  // In libre the cards are placed by hand, so a size change resizes them (relative to the previous
+  // value) instead of re-scaling a base layout; spacing doesn't apply there.
+  const handleScaleChange = useCallback(
+    (key: ScaleKey, value: number) => {
+      updateConfig((prev) => {
+        if (prev.archetypeId !== 'libre' || key === 'gapScale') return { [key]: value };
+        const ratio = value / prev[key];
+        return {
+          [key]: value,
+          freeformSwatches: scaleSwatches(
+            prev.freeformSwatches,
+            key === 'cardWidthScale' ? ratio : 1,
+            key === 'cardHeightScale' ? ratio : 1,
+            CANVAS_W,
+            CANVAS_H,
+          ),
+        };
+      });
+    },
+    [updateConfig],
+  );
 
   const handlePaletteSizeChange = useCallback(
     async (newSize: number) => {
@@ -170,7 +225,17 @@ export default function PaletteScreen() {
         // Reset (not remap) per ADR-0001: colors re-sort by luminosity on
         // every extraction, so an old position's index no longer points at
         // "the same" color.
-        updateConfig({ paletteSize: newSize, freeformSwatches: [] });
+        // A new count means a new base layout: libre goes back to the one it came from, the rest take
+        // the look of the base for that count.
+        updateConfig((prev) => ({
+          paletteSize: newSize,
+          ...(prev.archetypeId === 'libre'
+            ? {
+                ...NEUTRAL_SCALES,
+                freeformSwatches: libreSeed(prev.libreSource, newSize, NEUTRAL_SCALES),
+              }
+            : { ...baseStyleConfig(prev.archetypeId, newSize), freeformSwatches: [] }),
+        }));
         trackEvent('config_changed', { config_key: 'paletteSize' });
       } catch (err) {
         const reason = err instanceof ExtractError ? err.message : 'unknown';
@@ -350,6 +415,8 @@ export default function PaletteScreen() {
         imageUri={palette.imageUri}
         config={config}
         updateConfig={updateConfig}
+        onSelectArchetype={selectArchetype}
+        onScaleChange={handleScaleChange}
         onImageUpdated={(updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => {
           setPalette((p) => (p ? { ...p, ...updates } : p));
         }}

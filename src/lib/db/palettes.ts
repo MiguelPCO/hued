@@ -2,7 +2,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { monotonicFactory } from 'ulidx';
 
-import { DEFAULT_LAYOUT_CONFIG } from '@/types/palette';
+import { DEFAULT_LAYOUT_CONFIG, LEGACY_ARCHETYPE_IDS } from '@/types/palette';
 import type { ExtractedColor, LayoutConfig, Palette, PaletteMeta } from '@/types/palette';
 import { getDb } from './client';
 
@@ -31,16 +31,19 @@ interface PaletteRow {
 }
 
 function rowToPalette(row: PaletteRow): Palette {
+  // Rows saved before a LayoutConfig field existed (e.g. paletteSize,
+  // freeformSwatches) have it missing from the stored JSON blob — merge
+  // over defaults here, once, so every consumer can assume a complete
+  // LayoutConfig instead of guarding each read site.
+  const layoutConfig = { ...DEFAULT_LAYOUT_CONFIG, ...(JSON.parse(row.layout_config) as Partial<LayoutConfig>) };
+  // Archetype ids from before the full-bleed rebuild no longer exist: map them once, here.
+  layoutConfig.archetypeId = LEGACY_ARCHETYPE_IDS[layoutConfig.archetypeId] ?? layoutConfig.archetypeId;
   return {
     id: row.id,
     imageUri: row.image_uri,
     thumbnailUri: row.thumbnail_uri,
     colors: JSON.parse(row.colors) as ExtractedColor[],
-    // Rows saved before a LayoutConfig field existed (e.g. paletteSize,
-    // freeformSwatches) have it missing from the stored JSON blob — merge
-    // over defaults here, once, so every consumer can assume a complete
-    // LayoutConfig instead of guarding each read site.
-    layoutConfig: { ...DEFAULT_LAYOUT_CONFIG, ...(JSON.parse(row.layout_config) as Partial<LayoutConfig>) },
+    layoutConfig,
     collectionId: row.collection_id,
     meta: JSON.parse(row.meta) as PaletteMeta,
     createdAt: row.created_at,

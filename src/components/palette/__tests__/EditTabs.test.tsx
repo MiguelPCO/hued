@@ -1,13 +1,16 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
+
 import { Switch } from 'react-native';
+
+import { makeLayoutConfig } from '@test/factories';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
 import { ARCHETYPES } from '@/data/archetypes';
 import { trackEvent } from '@/lib/analytics/events';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import type { ArchetypeId } from '@/types/palette';
-import { makeLayoutConfig } from '@test/factories';
+
 import { EditTabs } from '../EditTabs';
 
 jest.mock('@/lib/analytics/events', () => ({ trackEvent: jest.fn() }));
@@ -28,6 +31,8 @@ function setup(overrides: Partial<Props> = {}) {
     imageUri: 'file:///full.jpg',
     config: makeLayoutConfig(),
     updateConfig: jest.fn(),
+    onSelectArchetype: jest.fn(),
+    onScaleChange: jest.fn(),
     onImageUpdated: jest.fn(),
     onPaletteSizeChange: jest.fn(),
     onResetLibreLayout: jest.fn(),
@@ -40,47 +45,56 @@ function setup(overrides: Partial<Props> = {}) {
 
 const openTab = (label: string) => fireEvent.press(screen.getByText(label));
 
+/** Types a number into a ValueSlider's field and commits it on blur. */
+function typeValue(label: string, value: string) {
+  const input = screen.getByLabelText(label);
+  fireEvent(input, 'focus');
+  fireEvent.changeText(input, value);
+  fireEvent(input, 'blur');
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   useSettingsStore.setState({ subscriptionStatus: 'free' });
 });
 
 describe('EditTabs — navigation', () => {
-  it('shows the seven tabs and starts on Arquetipo', () => {
+  it('shows the six tabs and starts on Arquetipo', () => {
     setup();
 
-    ['Recorte', 'Arquetipo', 'Colores', 'Tipografía', 'Esquinas', 'Estilo', 'Etiquetas'].forEach((tab) => {
+    ['Recorte', 'Arquetipo', 'Colores', 'Tarjetas', 'Fuente', 'Texto'].forEach((tab) => {
       expect(screen.getByText(tab)).toBeOnTheScreen();
     });
-    expect(screen.getByText('Franja')).toBeOnTheScreen();
+    expect(screen.getByText('Pila')).toBeOnTheScreen();
   });
 
   it('shows only the active tab content', () => {
     setup();
 
-    openTab('Tipografía');
+    openTab('Fuente');
 
-    expect(screen.queryByText('Franja')).toBeNull();
+    expect(screen.queryByText('Pila')).toBeNull();
     expect(screen.getByText('Clásica')).toBeOnTheScreen();
   });
 });
 
 describe('EditTabs — Arquetipo', () => {
-  it('lists the six archetypes', () => {
+  it('lists the five archetypes', () => {
     setup();
 
-    ['Franja', 'Editorial', 'Cuadrícula', 'Banner', 'Lateral', 'Libre'].forEach((name) => {
+    ['Pila', 'Mosaico', 'Escalonado', 'Columnas', 'Libre'].forEach((name) => {
       expect(screen.getByText(name)).toBeOnTheScreen();
     });
   });
 
-  it('selecting one updates the config and records the event', () => {
+  it('selecting one hands it to the screen (which applies its base look) and records the event', () => {
     const props = setup();
 
-    fireEvent.press(screen.getByText('Cuadrícula'));
+    fireEvent.press(screen.getByText('Mosaico'));
 
-    expect(props.updateConfig).toHaveBeenCalledWith({ archetypeId: 'grid' });
-    expect(trackEvent).toHaveBeenCalledWith('archetype_selected', { archetype_id: 'grid' });
+    expect(props.onSelectArchetype).toHaveBeenCalledWith('mosaico');
+    expect(props.updateConfig).not.toHaveBeenCalled();
+    expect(trackEvent).toHaveBeenCalledWith('archetype_selected', { archetype_id: 'mosaico' });
   });
 
   it('offers "Restablecer layout" only for Libre', () => {
@@ -92,7 +106,7 @@ describe('EditTabs — Arquetipo', () => {
   });
 
   it('hides "Restablecer layout" for the fixed archetypes', () => {
-    setup({ config: makeLayoutConfig({ archetypeId: 'strip' }) });
+    setup({ config: makeLayoutConfig({ archetypeId: 'pila' }) });
 
     expect(screen.queryByText('Restablecer layout')).toBeNull();
   });
@@ -100,27 +114,27 @@ describe('EditTabs — Arquetipo', () => {
 
 describe('EditTabs — locked (premium) archetypes', () => {
   afterEach(() => {
-    delete ARCHETYPES.strip.premium;
+    delete ARCHETYPES.pila.premium;
   });
 
   it('sends free users to the paywall instead of selecting', () => {
-    ARCHETYPES.strip.premium = true;
-    const props = setup({ config: makeLayoutConfig({ archetypeId: 'grid' }) });
+    ARCHETYPES.pila.premium = true;
+    const props = setup({ config: makeLayoutConfig({ archetypeId: 'mosaico' }) });
 
-    fireEvent.press(screen.getByText('Franja 🔒'));
+    fireEvent.press(screen.getByText('Pila 🔒'));
 
     expect(props.onLockedPress).toHaveBeenCalledTimes(1);
-    expect(props.updateConfig).not.toHaveBeenCalled();
+    expect(props.onSelectArchetype).not.toHaveBeenCalled();
   });
 
   it('lets premium users select it', () => {
-    ARCHETYPES.strip.premium = true;
+    ARCHETYPES.pila.premium = true;
     useSettingsStore.setState({ subscriptionStatus: 'premium' });
-    const props = setup({ config: makeLayoutConfig({ archetypeId: 'grid' }) });
+    const props = setup({ config: makeLayoutConfig({ archetypeId: 'mosaico' }) });
 
-    fireEvent.press(screen.getByText('Franja'));
+    fireEvent.press(screen.getByText('Pila'));
 
-    expect(props.updateConfig).toHaveBeenCalledWith({ archetypeId: 'strip' });
+    expect(props.onSelectArchetype).toHaveBeenCalledWith('pila');
   });
 });
 
@@ -170,23 +184,10 @@ describe('EditTabs — Colores', () => {
   });
 });
 
-describe('EditTabs — Tipografía, Esquinas, Estilo', () => {
-  it('lists the five fonts and applies the chosen one', () => {
-    const props = setup();
-    openTab('Tipografía');
-
-    ['Moderna', 'Clásica', 'Técnica', 'Condensada', 'Display'].forEach((f) => {
-      expect(screen.getByText(f)).toBeOnTheScreen();
-    });
-    fireEvent.press(screen.getByText('Clásica'));
-
-    expect(props.updateConfig).toHaveBeenCalledWith({ fontFamily: 'serif' });
-    expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'fontFamily' });
-  });
-
+describe('EditTabs — Tarjetas', () => {
   it('applies the Píldora corner preset using the shared pill sentinel', () => {
     const props = setup();
-    openTab('Esquinas');
+    openTab('Tarjetas');
 
     fireEvent.press(screen.getByText('Píldora'));
 
@@ -196,7 +197,7 @@ describe('EditTabs — Tipografía, Esquinas, Estilo', () => {
 
   it('applies a card style', () => {
     const props = setup();
-    openTab('Estilo');
+    openTab('Tarjetas');
 
     fireEvent.press(screen.getByText('Contorno'));
 
@@ -205,26 +206,198 @@ describe('EditTabs — Tipografía, Esquinas, Estilo', () => {
   });
 
   it.each([
-    ['strip', false],
-    ['editorial', true],
-    ['grid', false],
-    ['banner', true],
-    ['side', false],
+    ['pila', false],
+    ['mosaico', false],
+    ['escalonado', false],
+    ['columnas', false],
     ['libre', false],
   ] as [ArchetypeId, boolean][])('%s: "Difuminado" available = %s', (archetypeId, available) => {
     setup({ config: makeLayoutConfig({ archetypeId }) });
-    openTab('Estilo');
+    openTab('Tarjetas');
 
     expect(screen.queryByText('Difuminado') !== null).toBe(available);
   });
+
+  it('shows the current opacity, size and spacing', () => {
+    setup({
+      config: makeLayoutConfig({
+        cardOpacity: 65,
+        cardWidthScale: 80,
+        cardHeightScale: 120,
+        gapScale: 140,
+      }),
+    });
+    openTab('Tarjetas');
+
+    expect(screen.getByLabelText('Opacidad').props.value).toBe('65');
+    expect(screen.getByLabelText('Ancho').props.value).toBe('80');
+    expect(screen.getByLabelText('Alto').props.value).toBe('120');
+    expect(screen.getByLabelText('Separación').props.value).toBe('140');
+  });
+
+  it('applies a typed opacity, snapped to its 5 % step and clamped to 30-100', () => {
+    const props = setup();
+    openTab('Tarjetas');
+
+    typeValue('Opacidad', '72');
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ cardOpacity: 70 });
+    expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'cardOpacity' });
+
+    typeValue('Opacidad', '5');
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ cardOpacity: 30 });
+  });
+
+  it.each([
+    ['Ancho', 'cardWidthScale'],
+    ['Alto', 'cardHeightScale'],
+    ['Separación', 'gapScale'],
+  ] as const)('sends %s to onScaleChange, clamped to 50-150', (label, key) => {
+    const props = setup();
+    openTab('Tarjetas');
+
+    typeValue(label, '120');
+    expect(props.onScaleChange).toHaveBeenLastCalledWith(key, 120);
+
+    typeValue(label, '400');
+    expect(props.onScaleChange).toHaveBeenLastCalledWith(key, 150);
+    expect(props.updateConfig).not.toHaveBeenCalled();
+  });
+
+  it('keeps the entered text out of the way: a non-number leaves the value unchanged', () => {
+    const props = setup({ config: makeLayoutConfig({ cardWidthScale: 90 }) });
+    openTab('Tarjetas');
+
+    typeValue('Ancho', 'abc');
+
+    expect(props.onScaleChange).toHaveBeenLastCalledWith('cardWidthScale', 90);
+  });
+
+  it('disables the spacing in Libre (the cards are placed by hand)', () => {
+    setup({ config: makeLayoutConfig({ archetypeId: 'libre' }) });
+    openTab('Tarjetas');
+
+    expect(screen.getByLabelText('Separación').props.editable).toBe(false);
+    expect(screen.getByLabelText('Ancho').props.editable).toBe(true);
+  });
 });
 
-describe('EditTabs — Etiquetas', () => {
+describe('EditTabs — Fuente', () => {
+  it('lists the system fonts and the bundled ones, grouped, and applies the chosen one', () => {
+    const props = setup();
+    openTab('Fuente');
+
+    ['Sistema', 'Sans', 'Serif', 'Mono', 'Display', 'Manuscrita'].forEach((group) => {
+      // 'Display' is both a group and a system font name
+      expect(screen.getAllByText(group).length).toBeGreaterThan(0);
+    });
+    [
+      'Moderna',
+      'Clásica',
+      'Técnica',
+      'Condensada',
+      'Poppins',
+      'Playfair Display',
+      'Pacifico',
+    ].forEach((f) => {
+      expect(screen.getByText(f)).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByText('Clásica'));
+
+    expect(props.updateConfig).toHaveBeenCalledWith({ fontFamily: 'serif' });
+    expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'fontFamily' });
+  });
+
+  it('applies a bundled font by its catalog key', () => {
+    const props = setup();
+    openTab('Fuente');
+
+    fireEvent.press(screen.getByText('Space Mono'));
+
+    expect(props.updateConfig).toHaveBeenCalledWith({ fontFamily: 'space-mono' });
+  });
+});
+
+describe('EditTabs — Texto', () => {
+  it('steps the font size with − and +, and types it', () => {
+    const props = setup({ config: makeLayoutConfig({ fontSize: 10 }) });
+    openTab('Texto');
+
+    fireEvent.press(screen.getByLabelText('Tamaño más'));
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ fontSize: 11 });
+
+    fireEvent.press(screen.getByLabelText('Tamaño menos'));
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ fontSize: 9 });
+
+    typeValue('Tamaño', '40');
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ fontSize: 24 });
+    expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'fontSize' });
+  });
+
+  it('stops the stepper at 6 and 24 px', () => {
+    setup({ config: makeLayoutConfig({ fontSize: 6 }) });
+    openTab('Texto');
+
+    expect(screen.getByLabelText('Tamaño menos')).toBeDisabled();
+    expect(screen.getByLabelText('Tamaño más')).toBeEnabled();
+  });
+
+  it('applies the label position, order and alignment', () => {
+    const props = setup();
+    openTab('Texto');
+
+    fireEvent.press(screen.getByText('Abajo'));
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ labelPosition: 'bottom' });
+
+    fireEvent.press(screen.getByText('Hex primero'));
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ labelOrder: 'hex-first' });
+
+    fireEvent.press(screen.getByText('Derecha'));
+    expect(props.updateConfig).toHaveBeenLastCalledWith({ labelAlign: 'right' });
+  });
+
+  it('offers the diagonal alignment only with the split position', () => {
+    setup({ config: makeLayoutConfig({ labelPosition: 'split' }) });
+    openTab('Texto');
+    expect(screen.getByText('Diagonal')).toBeOnTheScreen();
+  });
+
+  it('hides the diagonal alignment for the other positions', () => {
+    setup({ config: makeLayoutConfig({ labelPosition: 'top' }) });
+    openTab('Texto');
+    expect(screen.queryByText('Diagonal')).toBeNull();
+  });
+
+  it('falls back to left alignment when leaving split while diagonal', () => {
+    const props = setup({
+      config: makeLayoutConfig({ labelPosition: 'split', labelAlign: 'diagonal' }),
+    });
+    openTab('Texto');
+
+    fireEvent.press(screen.getByText('Arriba'));
+
+    expect(props.updateConfig).toHaveBeenCalledWith({ labelPosition: 'top', labelAlign: 'left' });
+  });
+
+  it('keeps the alignment when leaving split without diagonal', () => {
+    const props = setup({
+      config: makeLayoutConfig({ labelPosition: 'split', labelAlign: 'center' }),
+    });
+    openTab('Texto');
+
+    fireEvent.press(screen.getByText('Arriba'));
+
+    expect(props.updateConfig).toHaveBeenCalledWith({ labelPosition: 'top' });
+  });
+
   it('reflects the label toggles of the config', () => {
     setup({ config: makeLayoutConfig({ showHex: true, showName: false, showRGB: true }) });
-    openTab('Etiquetas');
+    openTab('Texto');
 
-    expect(screen.UNSAFE_getAllByType(Switch).map((s) => s.props.value)).toEqual([true, false, true]);
+    expect(screen.UNSAFE_getAllByType(Switch).map((s) => s.props.value)).toEqual([
+      true,
+      false,
+      true,
+    ]);
   });
 
   it.each([
@@ -232,8 +405,10 @@ describe('EditTabs — Etiquetas', () => {
     [1, 'showName'],
     [2, 'showRGB'],
   ] as const)('switch %i toggles %s and records the event', (index, key) => {
-    const props = setup({ config: makeLayoutConfig({ showHex: true, showName: true, showRGB: true }) });
-    openTab('Etiquetas');
+    const props = setup({
+      config: makeLayoutConfig({ showHex: true, showName: true, showRGB: true }),
+    });
+    openTab('Texto');
 
     fireEvent(screen.UNSAFE_getAllByType(Switch)[index], 'valueChange', false);
 

@@ -1,5 +1,4 @@
 import {
-  generateScatterLayout,
   clampSwatch,
   clampResizeSwatch,
   bringToFront,
@@ -7,44 +6,6 @@ import {
   snapPosition,
   snapSize,
 } from '../freeformLayout';
-
-describe('generateScatterLayout', () => {
-  it('returns one rect per requested count', () => {
-    const layout = generateScatterLayout(5, 360, 450);
-    expect(layout).toHaveLength(5);
-  });
-
-  it('all rects are the same size', () => {
-    const layout = generateScatterLayout(6, 360, 450);
-    const [first] = layout;
-    for (const rect of layout) {
-      expect(rect.width).toBe(first.width);
-      expect(rect.height).toBe(first.height);
-    }
-  });
-
-  it('all rects are fully within canvas bounds', () => {
-    const layout = generateScatterLayout(8, 360, 450);
-    for (const rect of layout) {
-      expect(rect.x).toBeGreaterThanOrEqual(0);
-      expect(rect.y).toBeGreaterThanOrEqual(0);
-      expect(rect.x + rect.width).toBeLessThanOrEqual(360);
-      expect(rect.y + rect.height).toBeLessThanOrEqual(450);
-    }
-  });
-
-  it('no two rects overlap', () => {
-    const layout = generateScatterLayout(8, 360, 450);
-    function overlaps(a: typeof layout[0], b: typeof layout[0]) {
-      return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-    }
-    for (let i = 0; i < layout.length; i++) {
-      for (let j = i + 1; j < layout.length; j++) {
-        expect(overlaps(layout[i], layout[j])).toBe(false);
-      }
-    }
-  });
-});
 
 describe('clampSwatch', () => {
   it('leaves an in-bounds rect unchanged', () => {

@@ -1,29 +1,22 @@
 import type { ComponentType } from 'react';
 
-import { BannerArchetype } from '@/components/compose/archetypes/BannerArchetype';
-import { EditorialArchetype } from '@/components/compose/archetypes/EditorialArchetype';
-import { GridArchetype } from '@/components/compose/archetypes/GridArchetype';
-import { LibreArchetype } from '@/components/compose/archetypes/LibreArchetype';
-import { SideArchetype } from '@/components/compose/archetypes/SideArchetype';
-import { StripArchetype } from '@/components/compose/archetypes/StripArchetype';
-import type { ArchetypeProps, EditOverlayComponent } from '@/components/compose/archetypes/types';
 import { LibreEditOverlay } from '@/components/compose/LibreEditOverlay';
-import type { ArchetypeId, LayoutConfig } from '@/types/palette';
+import { LibreArchetype } from '@/components/compose/archetypes/LibreArchetype';
+import { cardsArchetype } from '@/components/compose/archetypes/PhotoSwatches';
+import type { ArchetypeProps, EditOverlayComponent } from '@/components/compose/archetypes/types';
+import type { ArchetypeId } from '@/types/palette';
 
 export interface ArchetypeDefinition {
   id: ArchetypeId;
   displayName: string;
   description: string;
   Component: ComponentType<ArchetypeProps>;
-  defaultConfig: Partial<LayoutConfig>;
   /**
    * Whether `cardStyle: 'blur'` produces any visible effect for this
    * archetype. `wrapMetadataInBlur` (shared.tsx) blurs the backdrop behind
-   * each swatch's metadata text — for strip/grid/side that backdrop is just
-   * the same flat, opaque swatch `Rect` drawn directly underneath it, so
-   * blurring it is a no-op indistinguishable from `'filled'`. Only
-   * editorial (blurs the underlying photo) and banner (translucent color
-   * over photo) show a visible difference. The config panel
+   * each swatch's metadata text — for every card layout that backdrop is just
+   * the same flat, opaque card drawn directly underneath it, so blurring it is
+   * a no-op indistinguishable from `'filled'`. The config panel
    * (app/palette/[id].tsx) uses this to hide the "Difuminado" option for
    * archetypes where it wouldn't do anything.
    */
@@ -35,52 +28,42 @@ export interface ArchetypeDefinition {
 }
 
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeDefinition> = {
-  strip: {
-    id: 'strip',
-    displayName: 'Franja',
-    description: 'Imagen ocupando el 70% superior con una franja inferior dividida en barras verticales de color.',
-    Component: StripArchetype,
-    defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
+  pila: {
+    id: 'pila',
+    displayName: 'Pila',
+    description:
+      'Foto completa con las tarjetas en zigzag, apiladas en una columna o en barras de distinta altura.',
+    Component: cardsArchetype('pila'),
     supportsBlur: false,
   },
-  editorial: {
-    id: 'editorial',
-    displayName: 'Editorial',
-    description: 'Imagen a sangre completa con degradado oscuro inferior, puntos de color superpuestos y el nombre del color dominante como leyenda.',
-    Component: EditorialArchetype,
-    defaultConfig: { fontFamily: 'serif', cardStyle: 'filled' },
-    supportsBlur: true,
-  },
-  grid: {
-    id: 'grid',
-    displayName: 'Cuadrícula',
-    description: 'Imagen en la mitad superior y una cuadrícula de dos columnas con las muestras de color debajo.',
-    Component: GridArchetype,
-    defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
+  mosaico: {
+    id: 'mosaico',
+    displayName: 'Mosaico',
+    description: 'Foto completa con las tarjetas en cuadrícula, o en una columna si son pocas.',
+    Component: cardsArchetype('mosaico'),
     supportsBlur: false,
   },
-  banner: {
-    id: 'banner',
-    displayName: 'Banner',
-    description: 'Imagen a sangre completa con una franja translúcida inferior dividida en muestras de color verticales.',
-    Component: BannerArchetype,
-    defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
-    supportsBlur: true,
+  escalonado: {
+    id: 'escalonado',
+    displayName: 'Escalonado',
+    description:
+      'Foto completa con las tarjetas repartidas por las esquinas y el centro, o en zigzag.',
+    Component: cardsArchetype('escalonado'),
+    supportsBlur: false,
   },
-  side: {
-    id: 'side',
-    displayName: 'Lateral',
-    description: 'Imagen ocupando el 60% izquierdo con una columna lateral de filas horizontales de color.',
-    Component: SideArchetype,
-    defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
+  columnas: {
+    id: 'columnas',
+    displayName: 'Columnas',
+    description: 'Foto completa con las tarjetas en filas, en pirámide o en círculos.',
+    Component: cardsArchetype('columnas'),
     supportsBlur: false,
   },
   libre: {
     id: 'libre',
     displayName: 'Libre',
-    description: 'Imagen a sangre completa con muestras de color que arrastras y redimensionas donde quieras.',
+    description:
+      'Imagen a sangre completa con muestras de color que arrastras y redimensionas donde quieras.',
     Component: LibreArchetype,
-    defaultConfig: { fontFamily: 'sans', cardStyle: 'filled' },
     supportsBlur: false,
     EditOverlay: LibreEditOverlay,
   },

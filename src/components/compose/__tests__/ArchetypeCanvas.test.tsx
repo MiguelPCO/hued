@@ -8,7 +8,7 @@ import type { ArchetypeId, LayoutConfig } from '@/types/palette';
 import { makeColors, makeLayoutConfig, makePalette } from '@test/factories';
 import { findAll, findTexts } from '@test/skiaTree';
 import { getWatermarkTapRegion } from '../archetypes/Watermark';
-import { generateScatterLayout } from '../archetypes/freeformLayout';
+import { getBaseLayout, libreSeed, NEUTRAL_SCALES } from '../archetypes/cardLayouts';
 import { ArchetypeCanvas, CANVAS_H, CANVAS_W } from '../ArchetypeCanvas';
 
 // RN 0.86 exports Pressable as React.memo: the instances in the tree match its inner `.type`.
@@ -80,41 +80,39 @@ describe('ArchetypeCanvas — content', () => {
 
   it('draws the loaded photo through the archetype', () => {
     (useImage as jest.Mock).mockReturnValueOnce({});
-    const { json } = mount({ archetypeId: 'strip' });
+    const { json } = mount({ archetypeId: 'pila' });
 
     expect(findAll(json, 'SkImage')).toHaveLength(1);
   });
 
-  it.each([
-    ['strip', 315],
-    ['side', 450],
-  ] as [ArchetypeId, number][])('dispatches to the %s archetype by id', (archetypeId, photoHeight) => {
+  it.each(['pila', 'mosaico', 'escalonado', 'columnas'] as ArchetypeId[])('dispatches to the %s archetype by id', (archetypeId) => {
     const { json } = mount({ archetypeId });
 
-    const photo = findAll(json, 'SkRect').find((r) => r.props.color === '#E5E5E5')!;
-    expect(photo.props.height).toBe(photoHeight);
+    const first = findAll(json, 'SkRoundedRect').find((r) => r.props.style !== 'stroke')!;
+    const { x, y } = getBaseLayout(archetypeId as 'pila', 5).rects[0];
+    expect(first.props).toMatchObject({ x, y });
   });
 
-  it('clips the card with the configured corner radius', () => {
+  it('clips the image with a fixed radius, whatever the card corners are', () => {
     const { json } = mount({ cornerRadius: 24 });
 
     const clipped = findAll(json, 'SkGroup').find((g) => g.props.clip)!;
-    expect(clipped.props.clip).toEqual({ rect: { x: 0, y: 0, width: 360, height: 450 }, rx: 24, ry: 24 });
+    expect(clipped.props.clip).toEqual({ rect: { x: 0, y: 0, width: 360, height: 450 }, rx: 16, ry: 16 });
   });
 
   it('draws an inset 2px white outline for the outlined card style', () => {
-    const { json } = mount({ archetypeId: 'strip', cardStyle: 'outlined', cornerRadius: 12 });
+    const { json } = mount({ archetypeId: 'pila', cardStyle: 'outlined', cornerRadius: 12 });
 
-    const outline = findAll(json, 'SkRoundedRect')[0];
+    const outline = findAll(json, 'SkRoundedRect').find((r) => r.props.style === 'stroke')!;
     expect(outline.props).toMatchObject({
-      x: 1, y: 1, width: 358, height: 448, r: 12, strokeWidth: 2, style: 'stroke', color: '#FFFFFF',
+      x: 1, y: 1, width: 358, height: 448, r: 16, strokeWidth: 2, style: 'stroke', color: '#FFFFFF',
     });
   });
 
   it('draws no outline for the filled card style', () => {
-    const { json } = mount({ archetypeId: 'strip', cardStyle: 'filled' });
+    const { json } = mount({ archetypeId: 'pila', cardStyle: 'filled' });
 
-    expect(findAll(json, 'SkRoundedRect')).toHaveLength(0);
+    expect(findAll(json, 'SkRoundedRect').filter((r) => r.props.style === 'stroke')).toHaveLength(0);
   });
 });
 
@@ -168,7 +166,7 @@ describe('ArchetypeCanvas — watermark', () => {
 });
 
 describe('ArchetypeCanvas — libre edit overlay', () => {
-  const scatter = generateScatterLayout(5, 360, 450);
+  const scatter = libreSeed('pila', 5, NEUTRAL_SCALES);
 
   it('shows the drag handles on the edit screen (handler present, swatches generated)', () => {
     mount({ archetypeId: 'libre', freeformSwatches: scatter }, { onLibreSwatchesChange: jest.fn() });
@@ -189,7 +187,7 @@ describe('ArchetypeCanvas — libre edit overlay', () => {
   });
 
   it('never shows handles for the other archetypes', () => {
-    mount({ archetypeId: 'grid', freeformSwatches: scatter }, { onLibreSwatchesChange: jest.fn() });
+    mount({ archetypeId: 'mosaico', freeformSwatches: scatter }, { onLibreSwatchesChange: jest.fn() });
 
     expect(screen.UNSAFE_queryByType(LibreEditOverlay)).toBeNull();
   });

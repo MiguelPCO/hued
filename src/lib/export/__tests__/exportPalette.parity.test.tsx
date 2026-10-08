@@ -22,6 +22,13 @@ const CONFIGS: [string, Partial<LayoutConfig>][] = [
   ['defaults', {}],
   ['outlined with RGB labels', { cardStyle: 'outlined', showRGB: true }],
   ['blur, pill corners, serif', { cardStyle: 'blur', cornerRadius: PILL_CORNER_RADIUS, fontFamily: 'serif' }],
+  [
+    'adjusted cards and text',
+    {
+      cardOpacity: 60, cardWidthScale: 80, cardHeightScale: 120, gapScale: 130, fontSize: 14,
+      labelPosition: 'center', labelAlign: 'center', labelOrder: 'hex-first', fontFamily: 'poppins',
+    },
+  ],
   ['labels off, watermark on', { showHex: false, showName: false, showRGB: false, watermarkVisible: true }],
   [
     'libre with custom swatches',
@@ -89,7 +96,7 @@ describe('exportPalette', () => {
   it('falls back to the grey placeholder when the photo cannot be loaded', async () => {
     fromURI.mockRejectedValueOnce(new Error('missing file'));
 
-    const element = await exportedElement(makeLayoutConfig({ archetypeId: 'strip' }));
+    const element = await exportedElement(makeLayoutConfig({ archetypeId: 'pila' }));
     const view = render(element);
 
     expect(findAll(view.toJSON(), 'SkRect').some((r) => r.props.color === '#E5E5E5')).toBe(true);

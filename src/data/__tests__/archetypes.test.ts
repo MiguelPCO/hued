@@ -1,11 +1,10 @@
 import type { ArchetypeId } from '@/types/palette';
 import { ARCHETYPES } from '../archetypes';
 
-const IDS: ArchetypeId[] = ['strip', 'editorial', 'grid', 'banner', 'side', 'libre'];
-const FONTS = ['sans', 'serif', 'mono', 'condensed', 'display'];
+const IDS: ArchetypeId[] = ['pila', 'mosaico', 'escalonado', 'columnas', 'libre'];
 
 describe('ARCHETYPES registry', () => {
-  it('registers exactly the six archetypes', () => {
+  it('registers exactly the five archetypes', () => {
     expect(Object.keys(ARCHETYPES).sort()).toEqual([...IDS].sort());
   });
 
@@ -16,7 +15,6 @@ describe('ARCHETYPES registry', () => {
     expect(def.displayName.length).toBeGreaterThan(0);
     expect(def.description.length).toBeGreaterThan(20);
     expect(typeof def.Component).toBe('function');
-    expect(FONTS).toContain(def.defaultConfig.fontFamily);
   });
 
   it('display names are unique (they label the carousel pills)', () => {
@@ -25,8 +23,8 @@ describe('ARCHETYPES registry', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('only editorial and banner show a visible blur effect', () => {
-    expect(IDS.filter((id) => ARCHETYPES[id].supportsBlur).sort()).toEqual(['banner', 'editorial']);
+  it('blur is a no-op on every archetype (the backdrop is the flat card itself)', () => {
+    expect(IDS.filter((id) => ARCHETYPES[id].supportsBlur)).toEqual([]);
   });
 
   it('only libre has an interactive edit overlay', () => {

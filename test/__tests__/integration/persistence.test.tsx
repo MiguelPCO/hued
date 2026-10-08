@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
-import { generateScatterLayout } from '@/components/compose/archetypes/freeformLayout';
+import { libreSeed, NEUTRAL_SCALES } from '@/components/compose/archetypes/cardLayouts';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import PaletteScreen from '@app/palette/[id]';
 import { makeColors, makePalette } from '@test/factories';
@@ -51,12 +51,12 @@ describe('what the editor saves is what it loads next time', () => {
 
     expect(screen.getByText('Restablecer layout')).toBeOnTheScreen(); // Libre sigue activo
     expect(peekPalette('p1')!.layoutConfig.archetypeId).toBe('libre');
-    expect(peekPalette('p1')!.layoutConfig.freeformSwatches).toEqual(generateScatterLayout(5, 360, 450));
+    expect(peekPalette('p1')!.layoutConfig.freeformSwatches).toEqual(libreSeed('pila', 5, NEUTRAL_SCALES));
   });
 
   it('saves a pending edit when the editor is closed within the debounce window', async () => {
     const first = await open();
-    fireEvent.press(screen.getByText('Tipografía'));
+    fireEvent.press(screen.getByText('Fuente'));
     fireEvent.press(screen.getByText('Técnica'));
     expect(peekPalette('p1')!.layoutConfig.fontFamily).toBe('sans'); // todavía no guardado
 
@@ -70,7 +70,7 @@ describe('what the editor saves is what it loads next time', () => {
       makePalette({
         id: 'p1',
         colors: makeColors(5),
-        layoutConfig: { ...makePalette().layoutConfig, archetypeId: 'libre', freeformSwatches: generateScatterLayout(5, 360, 450) },
+        layoutConfig: { ...makePalette().layoutConfig, archetypeId: 'libre', freeformSwatches: libreSeed('pila', 5, NEUTRAL_SCALES) },
       })
     );
     const first = await open();
@@ -86,7 +86,7 @@ describe('what the editor saves is what it loads next time', () => {
     const saved = peekPalette('p1')!;
     expect(saved.layoutConfig.paletteSize).toBe(8);
     expect(saved.colors).toHaveLength(8);
-    expect(saved.layoutConfig.freeformSwatches).toEqual(generateScatterLayout(8, 360, 450)); // reiniciado a [] y resembrado por el efecto de Libre
+    expect(saved.layoutConfig.freeformSwatches).toEqual(libreSeed('pila', 8, NEUTRAL_SCALES)); // vuelve a la base del arquetipo del que venía, ahora para 8 colores
     fireEvent.press(screen.getByText('Colores'));
     expect(screen.getByText('8 colores')).toBeOnTheScreen();
   });

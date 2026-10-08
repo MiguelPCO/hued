@@ -17,19 +17,6 @@ export interface GeneratedSwatch extends SwatchRect {
 
 const LABEL_MIN_HEIGHT = 32;
 
-export function generateScatterLayout(count: number, canvasW: number, canvasH: number): GeneratedSwatch[] {
-  const cols = Math.ceil(Math.sqrt(count));
-  const rows = Math.ceil(count / cols);
-  const cellW = canvasW / cols;
-  const cellH = canvasH / rows;
-
-  return Array.from({ length: count }, (_, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    return { x: col * cellW, y: row * cellH, width: cellW, height: cellH, colorIndex: i };
-  });
-}
-
 export function clampSwatch<T extends SwatchRect>(rect: T, canvasW: number, canvasH: number): T {
   const width = Math.min(rect.width, canvasW);
   const height = Math.min(rect.height, canvasH);

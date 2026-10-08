@@ -17,13 +17,15 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PostHogProvider } from 'posthog-react-native';
 
 import { AnalyticsConsentSheet } from '@/components/AnalyticsConsentSheet';
 import { trackEvent } from '@/lib/analytics/events';
+import { FONT_MODULES } from '@/lib/fonts/fontModules';
+import { loadSkiaTypefaces } from '@/lib/fonts/skiaTypefaces';
 import { posthog } from '@/lib/analytics/posthog';
 import { init as initRevenueCat } from '@/lib/revenuecat/client';
 import { Colors } from '@/lib/tokens';
@@ -48,13 +50,22 @@ export default function RootLayout() {
     'Fraunces-Medium': Fraunces_500Medium,
     'Fraunces-Italic': Fraunces_500Medium_Italic,
     JetBrainsMono: JetBrainsMono_400Regular,
+    // The palette fonts, registered under their catalog key so the font picker can show each name in its own font.
+    ...FONT_MODULES,
   });
+  // The same fonts decoded for Skia, which draws the labels on the palette. Only the splash screen waits
+  // for them: the editor can't be reached before it hides.
+  const [typefacesReady, setTypefacesReady] = useState(false);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    loadSkiaTypefaces().finally(() => setTypefacesReady(true));
+  }, []);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && typefacesReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, typefacesReady]);
 
   useEffect(() => {
     trackEvent('app_opened', { source: 'cold_start' });

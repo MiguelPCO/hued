@@ -13,16 +13,10 @@ describe('SAMPLE_PALETTES', () => {
     }
   });
 
-  it('spreads the five archetypes two palettes each', () => {
+  it('spreads the palettes over the four card archetypes', () => {
     const counts: Record<string, number> = {};
     SAMPLE_PALETTES.forEach((s) => (counts[s.archetypeId] = (counts[s.archetypeId] ?? 0) + 1));
-    expect(counts).toEqual({ strip: 2, editorial: 2, grid: 2, banner: 2, side: 2 });
-  });
-
-  it('keeps 8-colour palettes off strip/banner/side until the H-04 device check', () => {
-    for (const s of SAMPLE_PALETTES.filter((p) => p.hexes.length === 8)) {
-      expect(['editorial', 'grid']).toContain(s.archetypeId);
-    }
+    expect(counts).toEqual({ pila: 3, mosaico: 3, columnas: 2, escalonado: 2 });
   });
 
   it('has a generated image per palette in assets/samples', () => {

@@ -46,13 +46,32 @@ describe('rows saved before newer LayoutConfig fields existed', () => {
     expect(palette?.layoutConfig.freeformSwatches).toEqual([]);
   });
 
-  it('keeps every value the user had stored', async () => {
+  it('getPalette fills in the card look fields from the defaults', async () => {
     mockDb.getFirstAsync.mockResolvedValue(legacyRow);
 
     const palette = await getPalette(legacyRow.id);
 
     expect(palette?.layoutConfig).toMatchObject({
-      archetypeId: 'grid',
+      cardOpacity: 100,
+      cardWidthScale: 100,
+      cardHeightScale: 100,
+      gapScale: 100,
+      fontSize: 10,
+      labelPosition: 'split',
+      labelOrder: 'name-first',
+      labelAlign: 'left',
+      libreSource: 'pila',
+    });
+  });
+
+  it('keeps every value the user had stored', async () => {
+    mockDb.getFirstAsync.mockResolvedValue(legacyRow);
+
+    const palette = await getPalette(legacyRow.id);
+
+    // 'grid' no longer exists: it reads back as its closest current archetype
+    expect(palette?.layoutConfig).toMatchObject({
+      archetypeId: 'mosaico',
       fontFamily: 'serif',
       cornerRadius: 24,
       cardStyle: 'outlined',

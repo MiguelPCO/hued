@@ -63,7 +63,7 @@ describe('from capture to a saved export', () => {
     const captured = await processCapture('file:///tmp/photo.jpg', 'gallery');
     expect(peekPalette(captured.id)).toMatchObject({
       colors: [],
-      layoutConfig: { archetypeId: 'strip' },
+      layoutConfig: { archetypeId: 'pila' },
       meta: { source: 'gallery' },
     });
 
@@ -71,12 +71,12 @@ describe('from capture to a saved export', () => {
     await openEditor(captured.id);
     expect(peekPalette(captured.id)!.colors).toHaveLength(5);
 
-    // 3) el usuario elige Cuadrícula; tras el debounce queda guardado
-    fireEvent.press(screen.getByText('Cuadrícula'));
+    // 3) el usuario elige Mosaico; tras el debounce queda guardado
+    fireEvent.press(screen.getByText('Mosaico'));
     await advance(499);
-    expect(peekPalette(captured.id)!.layoutConfig.archetypeId).toBe('strip'); // aún no
+    expect(peekPalette(captured.id)!.layoutConfig.archetypeId).toBe('pila'); // aún no
     await advance(1);
-    expect(peekPalette(captured.id)!.layoutConfig.archetypeId).toBe('grid');
+    expect(peekPalette(captured.id)!.layoutConfig.archetypeId).toBe('mosaico');
 
     // 4) exporta a 1×
     await exportAt1x();
@@ -94,7 +94,7 @@ describe('from capture to a saved export', () => {
     expect(events.indexOf('capture_completed')).toBeLessThan(events.indexOf('archetype_selected'));
     expect(events.indexOf('archetype_selected')).toBeLessThan(events.indexOf('palette_exported'));
     expect(trackEvent).toHaveBeenCalledWith('palette_exported', {
-      palette_id: captured.id, resolution: '1x', archetype_id: 'grid',
+      palette_id: captured.id, resolution: '1x', archetype_id: 'mosaico',
     });
   });
 
@@ -102,7 +102,7 @@ describe('from capture to a saved export', () => {
     const captured = await processCapture('file:///tmp/photo.jpg', 'camera');
     await openEditor(captured.id);
 
-    fireEvent.press(screen.getByText('Tipografía'));
+    fireEvent.press(screen.getByText('Fuente'));
     fireEvent.press(screen.getByText('Clásica')); // serif; todavía sin guardar (debounce de 500 ms)
     await exportAt1x();
     expect(media.saveToLibraryAsync).toHaveBeenCalledTimes(1);

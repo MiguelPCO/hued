@@ -4,7 +4,7 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Sharing from 'expo-sharing';
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
-import { generateScatterLayout } from '@/components/compose/archetypes/freeformLayout';
+import { baseStyleConfig, libreSeed, NEUTRAL_SCALES } from '@/components/compose/archetypes/cardLayouts';
 import { trackEvent } from '@/lib/analytics/events';
 import { ExtractError, extractColors } from '@/lib/color/extract';
 import {
@@ -194,7 +194,7 @@ describe('PaletteScreen — extraction on open', () => {
 });
 
 describe('PaletteScreen — saving the layout (500 ms debounce)', () => {
-  const openFonts = () => fireEvent.press(screen.getByText('Tipografía'));
+  const openFonts = () => fireEvent.press(screen.getByText('Fuente'));
 
   it('writes the config once, 500 ms after the last change', async () => {
     await mount();
@@ -246,7 +246,7 @@ describe('PaletteScreen — saving the layout (500 ms debounce)', () => {
 });
 
 describe('PaletteScreen — Libre archetype', () => {
-  it('seeds a scatter layout the first time Libre is chosen', async () => {
+  it('seeds the layout it came from the first time Libre is chosen, keeping the look', async () => {
     await mount();
 
     fireEvent.press(screen.getByText('Libre'));
@@ -254,14 +254,14 @@ describe('PaletteScreen — Libre archetype', () => {
 
     expect(lastWrite()).toMatchObject({
       archetypeId: 'libre',
-      freeformSwatches: generateScatterLayout(5, 360, 450),
+      freeformSwatches: libreSeed('pila', 5, NEUTRAL_SCALES),
     });
   });
 
   it('does not rewrite swatches that already match the colors', async () => {
     const custom = makeLayoutConfig({
       archetypeId: 'libre',
-      freeformSwatches: generateScatterLayout(5, 360, 450).map((s) => ({ ...s, x: s.x + 1 })),
+      freeformSwatches: libreSeed('pila', 5, NEUTRAL_SCALES).map((s) => ({ ...s, x: s.x + 1 })),
     });
     await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: custom }));
 
@@ -270,18 +270,94 @@ describe('PaletteScreen — Libre archetype', () => {
     expect(updatePaletteLayout).not.toHaveBeenCalled();
   });
 
-  it('"Restablecer layout" regenerates the scatter and records the event', async () => {
+  it('"Restablecer layout" goes back to the base layout and records the event', async () => {
     const custom = makeLayoutConfig({
       archetypeId: 'libre',
-      freeformSwatches: generateScatterLayout(5, 360, 450).map((s) => ({ ...s, x: s.x + 1 })),
+      freeformSwatches: libreSeed('pila', 5, NEUTRAL_SCALES).map((s) => ({ ...s, x: s.x + 1 })),
     });
     await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: custom }));
 
     fireEvent.press(screen.getByText('Restablecer layout'));
     await advance(500);
 
-    expect(lastWrite().freeformSwatches).toEqual(generateScatterLayout(5, 360, 450));
+    expect(lastWrite().freeformSwatches).toEqual(libreSeed('pila', 5, NEUTRAL_SCALES));
     expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'freeformSwatches_reset' });
+  });
+});
+
+describe('PaletteScreen — archetypes and card adjustments', () => {
+  const typeValue = (label: string, value: string) => {
+    const input = screen.getByLabelText(label);
+    fireEvent(input, 'focus');
+    fireEvent.changeText(input, value);
+    fireEvent(input, 'blur');
+  };
+
+  it('applies the whole base look of the archetype that is picked', async () => {
+    await mount();
+
+    fireEvent.press(screen.getByText('Escalonado'));
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject({ archetypeId: 'escalonado', ...baseStyleConfig('escalonado', 5) });
+    expect(lastWrite()).toMatchObject({ labelPosition: 'bottom', labelAlign: 'center', labelOrder: 'name-first' });
+  });
+
+  it('discards the size and spacing tweaks when another archetype is picked', async () => {
+    await mount(
+      makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: makeLayoutConfig({ cardWidthScale: 70, gapScale: 140 }) }),
+    );
+
+    fireEvent.press(screen.getByText('Mosaico'));
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject({ cardWidthScale: 100, gapScale: 100 });
+  });
+
+  it('keeps the tweaks when the current archetype is picked again', async () => {
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: makeLayoutConfig({ fontSize: 14 }) }));
+
+    fireEvent.press(screen.getByText('Pila'));
+    await advance(500);
+
+    expect(lastWrite().fontSize).toBe(14);
+  });
+
+  it('writes a size change of a card archetype to the config', async () => {
+    await mount();
+    fireEvent.press(screen.getByText('Tarjetas'));
+
+    typeValue('Ancho', '120');
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject({ cardWidthScale: 120, cardHeightScale: 100 });
+  });
+
+  it('starts Libre from the current archetype with its size and spacing already applied', async () => {
+    const tweaked = makeLayoutConfig({ archetypeId: 'mosaico', cardWidthScale: 80, gapScale: 120 });
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: tweaked }));
+
+    fireEvent.press(screen.getByText('Libre'));
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject({
+      archetypeId: 'libre',
+      libreSource: 'mosaico',
+      freeformSwatches: libreSeed('mosaico', 5, tweaked),
+    });
+  });
+
+  it('resizes the hand-placed cards of Libre by the ratio of the change', async () => {
+    const seeded = libreSeed('pila', 5, NEUTRAL_SCALES);
+    const libre = makeLayoutConfig({ archetypeId: 'libre', freeformSwatches: seeded, cardWidthScale: 100 });
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: libre }));
+    fireEvent.press(screen.getByText('Tarjetas'));
+
+    typeValue('Ancho', '50');
+    await advance(500);
+
+    expect(lastWrite().cardWidthScale).toBe(50);
+    expect(lastWrite().freeformSwatches[0]).toMatchObject({ width: seeded[0].width / 2, height: seeded[0].height });
   });
 });
 
@@ -302,6 +378,38 @@ describe('PaletteScreen — palette size', () => {
     await advance(500);
     expect(lastWrite()).toMatchObject({ paletteSize: 8, freeformSwatches: [] });
     expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'paletteSize' });
+  });
+
+  it('takes on the look of the base layout for the new count', async () => {
+    await mount();
+
+    setSize('8');
+    await settle();
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject(baseStyleConfig('pila', 8));
+    expect(lastWrite().cornerRadius).toBe(0);
+  });
+
+  it('sends Libre back to the layout it came from, for the new count', async () => {
+    const libre = makeLayoutConfig({
+      archetypeId: 'libre',
+      libreSource: 'columnas',
+      cardWidthScale: 70,
+      freeformSwatches: libreSeed('columnas', 5, NEUTRAL_SCALES),
+    });
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: libre }));
+
+    setSize('8');
+    await settle();
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject({
+      archetypeId: 'libre',
+      paletteSize: 8,
+      cardWidthScale: 100,
+      freeformSwatches: libreSeed('columnas', 8, NEUTRAL_SCALES),
+    });
   });
 
   it('does nothing when the chosen size is already extracted', async () => {
@@ -357,7 +465,7 @@ describe('PaletteScreen — export', () => {
     expect(media.saveToLibraryAsync).toHaveBeenCalledWith('file:///cache/out.png');
     expect(incrementExportCount).toHaveBeenCalledWith('p1');
     expect(useSettingsStore.getState().exportDailyCount).toBe(1);
-    expect(trackEvent).toHaveBeenCalledWith('palette_exported', { palette_id: 'p1', resolution: '2x', archetype_id: 'strip' });
+    expect(trackEvent).toHaveBeenCalledWith('palette_exported', { palette_id: 'p1', resolution: '2x', archetype_id: 'pila' });
     expect(trackEvent).toHaveBeenCalledWith('palette_shared', { palette_id: 'p1' });
     expect(screen.queryByText('Exportar paleta')).toBeNull();
   });

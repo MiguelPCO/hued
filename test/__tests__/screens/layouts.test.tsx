@@ -2,12 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as Sentry from '@sentry/react-native';
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { useFonts } from 'expo-font';
 import type { ReactElement } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { trackEvent } from '@/lib/analytics/events';
+import { loadSkiaTypefaces } from '@/lib/fonts/skiaTypefaces';
 import { init as initRevenueCat } from '@/lib/revenuecat/client';
 import { Colors } from '@/lib/tokens';
 import RootLayout from '@app/_layout';
@@ -39,6 +40,9 @@ jest.mock('@expo-google-fonts/jetbrains-mono', () => ({ JetBrainsMono_400Regular
 jest.mock('@expo-google-fonts/outfit', () => ({
   Outfit_400Regular: 'o400', Outfit_500Medium: 'o500', Outfit_600SemiBold: 'o600', Outfit_700Bold: 'o700',
 }));
+jest.mock('@/lib/fonts/fontModules', () => ({ FONT_MODULES: { poppins: 'pop400' } }));
+// Pending by default (no state update after the test ends); the splash tests resolve it themselves.
+jest.mock('@/lib/fonts/skiaTypefaces', () => ({ loadSkiaTypefaces: jest.fn(() => new Promise(() => {})) }));
 jest.mock('@/lib/revenuecat/client', () => ({ init: jest.fn() }));
 jest.mock('@/lib/analytics/events', () => ({ trackEvent: jest.fn() }));
 jest.mock('@/components/AnalyticsConsentSheet', () => {
@@ -62,6 +66,8 @@ beforeEach(() => {
   (SplashScreen.hideAsync as jest.Mock).mockClear();
   (useFonts as jest.Mock).mockReset();
   (useFonts as jest.Mock).mockReturnValue([true, null]);
+  (loadSkiaTypefaces as jest.Mock).mockReset();
+  (loadSkiaTypefaces as jest.Mock).mockReturnValue(new Promise(() => {}));
 });
 
 describe('RootLayout — startup', () => {
@@ -80,19 +86,25 @@ describe('RootLayout — startup', () => {
     expect(SplashScreen.hideAsync).not.toHaveBeenCalled();
   });
 
-  it('hides the splash screen once the fonts load', () => {
-    render(<RootLayout />);
+  it('hides the splash screen once the fonts load and the Skia typefaces are decoded', async () => {
+    let decoded!: () => void;
+    (loadSkiaTypefaces as jest.Mock).mockReturnValue(new Promise<void>((resolve) => (decoded = resolve)));
 
-    expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
+    render(<RootLayout />);
+    expect(SplashScreen.hideAsync).not.toHaveBeenCalled();
+
+    decoded();
+    await waitFor(() => expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1));
   });
 
-  it('still starts when a font fails to load (system font fallback)', () => {
+  it('still starts when a font fails to load (system font fallback)', async () => {
     (useFonts as jest.Mock).mockReturnValue([false, new Error('font')]);
+    (loadSkiaTypefaces as jest.Mock).mockResolvedValue(undefined);
 
     const view = render(<RootLayout />);
 
     expect(view.toJSON()).not.toBeNull();
-    expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1));
   });
 
   it('records the cold start', () => {
@@ -101,12 +113,12 @@ describe('RootLayout — startup', () => {
     expect(trackEvent).toHaveBeenCalledWith('app_opened', { source: 'cold_start' });
   });
 
-  it('loads the four font families the design tokens reference', () => {
+  it('loads the four font families the design tokens reference, plus the palette fonts', () => {
     render(<RootLayout />);
 
     const families = Object.keys((useFonts as jest.Mock).mock.calls[0][0]);
     expect(families).toEqual(
-      expect.arrayContaining(['Outfit', 'Fraunces', 'Fraunces-Italic', 'JetBrainsMono'])
+      expect.arrayContaining(['Outfit', 'Fraunces', 'Fraunces-Italic', 'JetBrainsMono', 'poppins'])
     );
   });
 });
