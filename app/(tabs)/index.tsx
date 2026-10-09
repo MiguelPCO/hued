@@ -19,6 +19,12 @@ import type { Collection } from '@/types/palette';
 
 type Filter = 'all' | 'favorites' | string;
 
+const STEPS = [
+  'Haz una foto o elige una de tu galería.',
+  'Hued saca de 3 a 8 colores.',
+  'Colócalos sobre la foto y exporta en PNG.',
+];
+
 export default function HomeScreen() {
   const [hasPalettes, setHasPalettes] = useState<boolean | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -231,9 +237,13 @@ export default function HomeScreen() {
       ) : (
         <View style={styles.emptyState}>
           <Text variant="h3" style={styles.centered}>Sin paletas todavía</Text>
-          <Text variant="body" color={Colors.textSecondary} style={styles.centered}>
-            Captura una foto o elige de tu galería para crear tu primera paleta.
-          </Text>
+          <View style={styles.steps}>
+            {STEPS.map((step, i) => (
+              <Text key={step} variant="body" color={Colors.textSecondary}>
+                {i + 1}. {step}
+              </Text>
+            ))}
+          </View>
           <View style={styles.emptyActions}>
             <View style={styles.actionItem}>
               <Button label="Cámara" onPress={handleCamera} variant="primary" fullWidth />
@@ -403,6 +413,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   centered: { textAlign: 'center' },
+  steps: { gap: Spacing.xs, alignSelf: 'stretch' },
   emptyActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
   actionItem: { flex: 1 },
   loadingBtn: {

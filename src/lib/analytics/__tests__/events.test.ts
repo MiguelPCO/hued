@@ -9,10 +9,10 @@ beforeEach(() => capture.mockClear());
 
 describe('trackEvent', () => {
   it('forwards the event name and its props to PostHog', () => {
-    trackEvent('paywall_shown', { trigger: 'export_limit' });
+    trackEvent('paywall_shown', { trigger: 'resolution_locked' });
 
     expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture).toHaveBeenCalledWith('paywall_shown', { trigger: 'export_limit' });
+    expect(capture).toHaveBeenCalledWith('paywall_shown', { trigger: 'resolution_locked' });
   });
 
   it('sends events without extra properties unchanged', () => {

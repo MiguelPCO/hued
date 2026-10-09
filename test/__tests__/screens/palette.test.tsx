@@ -36,8 +36,6 @@ jest.mock('@/lib/export/exportPalette', () => ({
 const media = MediaLibrary as jest.Mocked<typeof MediaLibrary>;
 const sharing = Sharing as jest.Mocked<typeof Sharing>;
 const palette = makePalette({ id: 'p1', colors: makeColors(5) });
-// Local calendar day, computed independently of the store (en-CA formats as YYYY-MM-DD).
-const today = () => new Date().toLocaleDateString('en-CA');
 
 // Drains the promise chains the screen starts (several awaits deep) inside act().
 const settle = async () => {
@@ -60,7 +58,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
   resetRouterMocks();
-  useSettingsStore.setState({ subscriptionStatus: 'free', exportDailyCount: 0, exportDailyResetDate: today() });
+  useSettingsStore.setState({ subscriptionStatus: 'free' });
   (updatePaletteLayout as jest.Mock).mockResolvedValue(undefined);
   (updatePaletteColors as jest.Mock).mockResolvedValue(undefined);
   (incrementExportCount as jest.Mock).mockResolvedValue(undefined);
@@ -454,7 +452,7 @@ describe('PaletteScreen — export', () => {
     expect(screen.getByText('4320 × 5400')).toBeOnTheScreen();
   });
 
-  it('exports, saves write-only, counts the export, shares and closes the sheet', async () => {
+  it('exports, saves write-only, counts the export on the palette, shares and closes the sheet', async () => {
     await mount();
 
     await exportAt('2×');
@@ -464,19 +462,18 @@ describe('PaletteScreen — export', () => {
     expect(media.requestPermissionsAsync).toHaveBeenCalledWith(true);
     expect(media.saveToLibraryAsync).toHaveBeenCalledWith('file:///cache/out.png');
     expect(incrementExportCount).toHaveBeenCalledWith('p1');
-    expect(useSettingsStore.getState().exportDailyCount).toBe(1);
     expect(trackEvent).toHaveBeenCalledWith('palette_exported', { palette_id: 'p1', resolution: '2x', archetype_id: 'pila' });
     expect(trackEvent).toHaveBeenCalledWith('palette_shared', { palette_id: 'p1' });
     expect(screen.queryByText('Exportar paleta')).toBeNull();
   });
 
-  it('still counts the export when the share sheet is unavailable', async () => {
+  it('still counts the export on the palette when the share sheet is unavailable', async () => {
     sharing.isAvailableAsync.mockResolvedValue(false);
     await mount();
 
     await exportAt('1×');
 
-    expect(useSettingsStore.getState().exportDailyCount).toBe(1);
+    expect(incrementExportCount).toHaveBeenCalledWith('p1');
     expect(sharing.shareAsync).not.toHaveBeenCalled();
     expect(trackEvent).not.toHaveBeenCalledWith('palette_shared', expect.anything());
   });
@@ -490,7 +487,6 @@ describe('PaletteScreen — export', () => {
     expect(screen.getByText('Activa el permiso de fotos en Ajustes del dispositivo.')).toBeOnTheScreen();
     expect(media.saveToLibraryAsync).not.toHaveBeenCalled();
     expect(incrementExportCount).not.toHaveBeenCalled();
-    expect(useSettingsStore.getState().exportDailyCount).toBe(0);
   });
 
   it('shows an error, reports to Sentry and does not count a failed export', async () => {
@@ -501,39 +497,42 @@ describe('PaletteScreen — export', () => {
 
     expect(screen.getByText('No se pudo exportar la paleta. Intentalo de nuevo.')).toBeOnTheScreen();
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(useSettingsStore.getState().exportDailyCount).toBe(0);
+    expect(incrementExportCount).not.toHaveBeenCalled();
   });
 
-  it('sends a free user at the daily limit to the paywall instead of exporting', async () => {
-    useSettingsStore.setState({ exportDailyCount: 3 });
+  it('exports as many times as a free user wants at 1× and 2×', async () => {
     await mount();
 
-    await exportAt('1×');
+    for (let i = 0; i < 5; i++) await exportAt(i % 2 ? '2×' : '1×');
 
-    expect(routerMock.push).toHaveBeenCalledWith({ pathname: '/paywall', params: { trigger: 'export_limit' } });
+    expect(exportPalette).toHaveBeenCalledTimes(5);
+    expect(routerMock.push).not.toHaveBeenCalled();
+  });
+
+  it('marks 4× as Pro and sends a free user to the paywall instead of exporting', async () => {
+    await mount();
+    openExport();
+    expect(screen.getByText('Pro')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('4×'));
+    await settle();
+
+    expect(routerMock.push).toHaveBeenCalledWith({ pathname: '/paywall', params: { trigger: 'resolution_locked' } });
     expect(exportPalette).not.toHaveBeenCalled();
     expect(screen.queryByText('Exportar paleta')).toBeNull();
   });
 
-  it('lets premium users export past the daily limit', async () => {
-    useSettingsStore.setState({ subscriptionStatus: 'premium', exportDailyCount: 99 });
+  it('lets premium users export at 4× with no Pro badge', async () => {
+    useSettingsStore.setState({ subscriptionStatus: 'premium' });
     await mount();
+    openExport();
+    expect(screen.queryByText('Pro')).toBeNull();
 
-    await exportAt('1×');
+    fireEvent.press(screen.getByText('4×'));
+    await settle();
 
-    expect(exportPalette).toHaveBeenCalledTimes(1);
+    expect(exportPalette).toHaveBeenCalledWith(palette, palette.layoutConfig, '4x');
     expect(routerMock.push).not.toHaveBeenCalled();
-  });
-
-  it('resets the daily counter on a new day before checking the limit', async () => {
-    useSettingsStore.setState({ exportDailyCount: 3, exportDailyResetDate: '2000-01-01' });
-    await mount();
-
-    await exportAt('1×');
-
-    expect(exportPalette).toHaveBeenCalledTimes(1);
-    expect(routerMock.push).not.toHaveBeenCalled();
-    expect(useSettingsStore.getState().exportDailyCount).toBe(1);
   });
 });
 

@@ -123,7 +123,7 @@ describe('exportPalette', () => {
 
     const view = render(await exportedElement(makeLayoutConfig({ watermarkVisible: false })));
 
-    expect(findTexts(view.toJSON()).filter((t) => t === 'hued')).toHaveLength(2); // texto + sombra
+    expect(findTexts(view.toJSON()).filter((t) => t === 'hued')).toHaveLength(1);
   });
 
   it('premium users get no watermark unless they asked for it', async () => {

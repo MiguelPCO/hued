@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
 import { useEffect, useState } from 'react';
@@ -5,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  ScrollView,
   StyleSheet,
   Switch,
   TextInput,
@@ -18,9 +20,11 @@ import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
+import { trackEvent } from '@/lib/analytics/events';
 import { posthog } from '@/lib/analytics/posthog';
-import { PRIVACY_URL } from '@/lib/legal';
+import { CONTACT_EMAIL, MANAGE_SUBSCRIPTION_URL, PRIVACY_URL } from '@/lib/legal';
 import { pickAvatarFromCamera, pickAvatarFromGallery, saveAvatar } from '@/lib/profile/avatar';
+import { restorePurchases } from '@/lib/revenuecat/client';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 
@@ -46,6 +50,7 @@ export default function SettingsScreen() {
   const [nameSheetVisible, setNameSheetVisible] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [analyticsOn, setAnalyticsOn] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
 
   // PostHog lee la elección guardada de forma asíncrona; hasta entonces el switch sale apagado.
   useEffect(() => {
@@ -57,6 +62,18 @@ export default function SettingsScreen() {
     setAnalyticsOn(on);
     if (on) posthog?.optIn();
     else posthog?.optOut();
+  }
+
+  async function handleRestore() {
+    setRestoreMessage(null);
+    try {
+      await restorePurchases();
+      trackEvent('subscription_restored', {});
+      setRestoreMessage('Compras restauradas.');
+    } catch (err) {
+      Sentry.captureException(err);
+      setRestoreMessage('No se pudieron restaurar las compras.');
+    }
   }
 
   async function handlePickAvatar(source: 'camera' | 'gallery') {
@@ -93,6 +110,7 @@ export default function SettingsScreen() {
         <Text variant="h1">Ajustes</Text>
       </View>
 
+      <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.profileRow}>
         <TouchableOpacity
           style={styles.avatar}
@@ -130,6 +148,16 @@ export default function SettingsScreen() {
             fullWidth
           />
         )}
+        {subscriptionStatus === 'premium' && subscriptionExpiresAt !== null && (
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => Linking.openURL(MANAGE_SUBSCRIPTION_URL)}
+            accessibilityRole="link"
+          >
+            <Text variant="body">Gestionar suscripción</Text>
+            <Icon name="chevron-right" size={20} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -156,7 +184,32 @@ export default function SettingsScreen() {
           <Text variant="body">Política de privacidad</Text>
           <Icon name="chevron-right" size={20} color={Colors.textTertiary} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.settingRow} onPress={handleRestore}>
+          <Text variant="body">Restaurar compras</Text>
+        </TouchableOpacity>
+        {restoreMessage && (
+          <Text variant="small" color={Colors.textSecondary} style={styles.restoreMessage}>
+            {restoreMessage}
+          </Text>
+        )}
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Hued`)}
+          accessibilityRole="link"
+        >
+          <View style={styles.settingText}>
+            <Text variant="body">Contacto</Text>
+            <Text variant="small" color={Colors.textSecondary}>{CONTACT_EMAIL}</Text>
+          </View>
+          <Icon name="chevron-right" size={20} color={Colors.textTertiary} />
+        </TouchableOpacity>
       </View>
+
+      <Text variant="small" color={Colors.textTertiary} style={styles.version}>
+        Hued {Application.nativeApplicationVersion ?? ''}
+        {Application.nativeBuildVersion ? ` (${Application.nativeBuildVersion})` : ''}
+      </Text>
+      </ScrollView>
 
       <Sheet visible={photoSheetVisible} onClose={() => setPhotoSheetVisible(false)}>
         <TouchableOpacity style={styles.sheetRow} onPress={() => handlePickAvatar('camera')}>
@@ -191,6 +244,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bgPrimary,
   },
+  scroll: { paddingBottom: Spacing.xl },
+  restoreMessage: { paddingVertical: Spacing.sm },
+  version: { textAlign: 'center', marginTop: Spacing.lg },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,

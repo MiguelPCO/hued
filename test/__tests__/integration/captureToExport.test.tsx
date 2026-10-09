@@ -22,8 +22,6 @@ jest.mock('@/lib/color/extract', () => ({
 }));
 
 const media = MediaLibrary as jest.Mocked<typeof MediaLibrary>;
-// Local calendar day, computed independently of the store (en-CA formats as YYYY-MM-DD).
-const today = () => new Date().toLocaleDateString('en-CA');
 
 // Drains the promise chains the screen starts (several awaits deep) inside act().
 const settle = async () => {
@@ -52,7 +50,7 @@ beforeEach(() => {
   resetRouterMocks();
   (useImage as jest.Mock).mockReturnValue(null);
   (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(null);
-  useSettingsStore.setState({ subscriptionStatus: 'free', exportDailyCount: 0, exportDailyResetDate: today() });
+  useSettingsStore.setState({ subscriptionStatus: 'free' });
 });
 
 afterEach(() => jest.useRealTimers());
@@ -84,7 +82,6 @@ describe('from capture to a saved export', () => {
     expect(media.saveToLibraryAsync).toHaveBeenCalledTimes(1);
     expect(media.saveToLibraryAsync).toHaveBeenCalledWith(expect.stringMatching(/^file:\/\/\/cache\/hued-export-\d+\.png$/));
     expect(peekPalette(captured.id)!.exportCount).toBe(1);
-    expect(useSettingsStore.getState().exportDailyCount).toBe(1);
 
     // 5) la analítica cuenta la historia completa, en orden
     const events = (trackEvent as jest.Mock).mock.calls.map((c) => c[0]);

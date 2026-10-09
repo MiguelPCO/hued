@@ -2,12 +2,11 @@ import { posthog } from './posthog';
 
 // Stub types — refined in Sprint 3 and Sprint 5 respectively
 export type ArchetypeId = string;
-export type PaywallTrigger = 'export_limit' | 'watermark_tap' | 'settings';
+export type PaywallTrigger = 'resolution_locked' | 'watermark_tap' | 'settings';
 
 type EventMap = {
   // Lifecycle
   app_opened: { source: 'cold_start' | 'background_return' };
-  onboarding_completed: { duration_ms: number };
 
   // Capture
   capture_started: { source: 'camera' | 'gallery' };

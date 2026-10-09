@@ -2,8 +2,10 @@ import * as Sentry from '@sentry/react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ActivityIndicator, Linking, Switch, TouchableOpacity } from 'react-native';
 
-import { PRIVACY_URL } from '@/lib/legal';
+import { trackEvent } from '@/lib/analytics/events';
+import { CONTACT_EMAIL, MANAGE_SUBSCRIPTION_URL, PRIVACY_URL } from '@/lib/legal';
 import { pickAvatarFromCamera, pickAvatarFromGallery, saveAvatar } from '@/lib/profile/avatar';
+import { restorePurchases } from '@/lib/revenuecat/client';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import SettingsScreen from '@app/(tabs)/settings';
 import { resetRouterMocks, routerMock } from '@test/router';
@@ -16,6 +18,9 @@ jest.mock('@/lib/analytics/posthog', () => ({
     return mockPosthog;
   },
 }));
+jest.mock('@/lib/analytics/events', () => ({ trackEvent: jest.fn() }));
+jest.mock('@/lib/revenuecat/client', () => ({ restorePurchases: jest.fn() }));
+jest.mock('expo-application', () => ({ nativeApplicationVersion: '1.2.3', nativeBuildVersion: '45' }));
 jest.mock('@/lib/profile/avatar', () => ({
   pickAvatarFromCamera: jest.fn(),
   pickAvatarFromGallery: jest.fn(),
@@ -210,5 +215,63 @@ describe('SettingsScreen — privacy and analytics', () => {
     fireEvent(screen.UNSAFE_getByType(Switch), 'valueChange', false);
     expect(mockPosthog!.optOut).toHaveBeenCalledTimes(1);
     expect(screen.UNSAFE_getByType(Switch).props.value).toBe(false);
+  });
+});
+
+describe('SettingsScreen — manage subscription', () => {
+  it('opens the store subscription screen for a renewing plan', () => {
+    useSettingsStore.setState({ subscriptionStatus: 'premium', subscriptionExpiresAt: Date.UTC(2027, 0, 15, 12) });
+    render(<SettingsScreen />);
+
+    fireEvent.press(screen.getByText('Gestionar suscripción'));
+
+    expect(Linking.openURL).toHaveBeenCalledWith(MANAGE_SUBSCRIPTION_URL);
+  });
+
+  it('hides it for a lifetime purchase and for free users', () => {
+    useSettingsStore.setState({ subscriptionStatus: 'premium', subscriptionExpiresAt: null });
+    const { unmount } = render(<SettingsScreen />);
+    expect(screen.queryByText('Gestionar suscripción')).toBeNull();
+    unmount();
+
+    useSettingsStore.setState({ subscriptionStatus: 'free' });
+    render(<SettingsScreen />);
+    expect(screen.queryByText('Gestionar suscripción')).toBeNull();
+  });
+});
+
+describe('SettingsScreen — restore, contact and version', () => {
+  it('restores purchases and says so', async () => {
+    (restorePurchases as jest.Mock).mockResolvedValue({});
+    render(<SettingsScreen />);
+
+    fireEvent.press(screen.getByText('Restaurar compras'));
+
+    expect(await screen.findByText('Compras restauradas.')).toBeOnTheScreen();
+    expect(trackEvent).toHaveBeenCalledWith('subscription_restored', {});
+  });
+
+  it('reports a failed restore to the user and to Sentry', async () => {
+    (restorePurchases as jest.Mock).mockRejectedValue(new Error('no account'));
+    render(<SettingsScreen />);
+
+    fireEvent.press(screen.getByText('Restaurar compras'));
+
+    expect(await screen.findByText('No se pudieron restaurar las compras.')).toBeOnTheScreen();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a mail to the contact address', () => {
+    render(<SettingsScreen />);
+
+    fireEvent.press(screen.getByText('Contacto'));
+
+    expect(Linking.openURL).toHaveBeenCalledWith(`mailto:${CONTACT_EMAIL}?subject=Hued`);
+  });
+
+  it('shows the app version and build at the bottom', () => {
+    render(<SettingsScreen />);
+
+    expect(screen.getByText('Hued 1.2.3 (45)')).toBeOnTheScreen();
   });
 });

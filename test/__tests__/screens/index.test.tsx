@@ -117,6 +117,14 @@ describe('HomeScreen — empty state', () => {
     expect(screen.queryByText('grid:all:')).toBeNull();
   });
 
+  it('explains how Hued works in three steps', async () => {
+    mount({ palettes: 0 });
+
+    expect(await screen.findByText(/1\. Haz una foto/)).toBeOnTheScreen();
+    expect(screen.getByText(/2\. Hued saca de 3 a 8 colores/)).toBeOnTheScreen();
+    expect(screen.getByText(/3\. Colócalos sobre la foto/)).toBeOnTheScreen();
+  });
+
   it('opens the camera tab from the "Cámara" button', async () => {
     mount({ palettes: 0 });
     fireEvent.press(await screen.findByText('Cámara'));

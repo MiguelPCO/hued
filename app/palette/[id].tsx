@@ -37,7 +37,7 @@ import {
   updatePaletteLayout,
 } from '@/lib/db/palettes';
 import { trackEvent } from '@/lib/analytics/events';
-import { canExportToday } from '@/lib/subscription/exportGate';
+import { isOptionLocked } from '@/lib/subscription/optionLock';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
 import type {
@@ -48,10 +48,10 @@ import type {
   Palette,
 } from '@/types/palette';
 
-const RESOLUTION_LABELS: { value: ExportResolution; label: string }[] = [
+const RESOLUTION_LABELS: { value: ExportResolution; label: string; premium?: boolean }[] = [
   { value: '1x', label: '1×' },
   { value: '2x', label: '2×' },
-  { value: '4x', label: '4×' },
+  { value: '4x', label: '4×', premium: true },
 ];
 
 export default function PaletteScreen() {
@@ -70,7 +70,7 @@ export default function PaletteScreen() {
   const [deleting, setDeleting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<(() => void) | null>(null);
-  const incrementDailyExportCount = useSettingsStore((s) => s.incrementExportCount);
+  const subscriptionStatus = useSettingsStore((s) => s.subscriptionStatus);
 
   const attemptExtraction = useCallback(async (target: Palette) => {
     setExtracting(true);
@@ -275,13 +275,10 @@ export default function PaletteScreen() {
   async function handleExport(resolution: ExportResolution) {
     if (!palette || !config) return;
 
-    useSettingsStore.getState().resetExportCountIfNewDay();
-    const { subscriptionStatus: currentSubscriptionStatus, exportDailyCount: currentExportDailyCount } =
-      useSettingsStore.getState();
-
-    if (!canExportToday(currentSubscriptionStatus, currentExportDailyCount)) {
+    const premium = RESOLUTION_LABELS.find((r) => r.value === resolution)?.premium;
+    if (isOptionLocked(premium, useSettingsStore.getState().subscriptionStatus)) {
       setExportSheetVisible(false);
-      router.push({ pathname: '/paywall', params: { trigger: 'export_limit' } });
+      router.push({ pathname: '/paywall', params: { trigger: 'resolution_locked' } });
       return;
     }
 
@@ -300,7 +297,6 @@ export default function PaletteScreen() {
       await MediaLibrary.saveToLibraryAsync(uri);
 
       await incrementExportCount(palette.id);
-      incrementDailyExportCount();
       trackEvent('palette_exported', {
         palette_id: palette.id,
         resolution,
@@ -439,8 +435,9 @@ export default function PaletteScreen() {
             <Text variant="small" color={Colors.error}>{exportError}</Text>
           </View>
         )}
-        {RESOLUTION_LABELS.map(({ value, label }) => {
+        {RESOLUTION_LABELS.map(({ value, label, premium }) => {
           const { width, height } = RESOLUTIONS[value];
+          const locked = isOptionLocked(premium, subscriptionStatus);
           return (
             <TouchableOpacity
               key={value}
@@ -452,6 +449,7 @@ export default function PaletteScreen() {
               <Text variant="small" color={Colors.textSecondary}>
                 {width} × {height}
               </Text>
+              {locked && <Text variant="small" color={Colors.accent} weight="semibold">Pro</Text>}
               {exportState === 'exporting' && <ActivityIndicator size="small" color={Colors.accent} />}
             </TouchableOpacity>
           );

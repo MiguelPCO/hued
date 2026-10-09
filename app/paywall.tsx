@@ -17,7 +17,7 @@ import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
 import type { PaywallTrigger } from '@/lib/analytics/events';
-import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
+import { PRIVACY_URL, STORE_NAME, TERMS_URL } from '@/lib/legal';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat/client';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
 
@@ -105,7 +105,7 @@ export default function PaywallScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text variant="body" color={Colors.textSecondary} style={styles.subtitle}>
-          Exportaciones ilimitadas y sin marca de agua.
+          Sin marca de agua y exportación en 4×.
         </Text>
 
         {loading ? (
@@ -129,6 +129,14 @@ export default function PaywallScreen() {
               />
             </View>
           ))
+        )}
+
+        {packages.length > 0 && (
+          <Text variant="small" color={Colors.textSecondary}>
+            {packages.some((p) => p.packageType !== 'LIFETIME') &&
+              `Las suscripciones mensual y anual se renuevan automáticamente al precio indicado hasta que las canceles. Puedes cancelar cuando quieras desde Suscripciones en ${STORE_NAME}. `}
+            {packages.some((p) => p.packageType === 'LIFETIME') && 'El plan De por vida es un pago único.'}
+          </Text>
         )}
 
         {error && packages.length > 0 && (

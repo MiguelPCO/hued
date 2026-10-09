@@ -19,64 +19,6 @@ jest.mock('react-native-mmkv', () => {
 
 import { useSettingsStore } from '../settingsStore';
 
-// Local calendar day (the store resets at local midnight); en-CA formats as YYYY-MM-DD.
-const todayString = () => new Date().toLocaleDateString('en-CA');
-const yesterdayString = () => {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toLocaleDateString('en-CA');
-};
-
-describe('resetExportCountIfNewDay', () => {
-  afterEach(() => {
-    useSettingsStore.setState({ exportDailyCount: 0, exportDailyResetDate: todayString() });
-  });
-
-  it('resets the count and bumps the reset date when the persisted date is in the past', () => {
-    useSettingsStore.setState({ exportDailyCount: 3, exportDailyResetDate: yesterdayString() });
-
-    useSettingsStore.getState().resetExportCountIfNewDay();
-
-    const state = useSettingsStore.getState();
-    expect(state.exportDailyCount).toBe(0);
-    expect(state.exportDailyResetDate).toBe(todayString());
-  });
-
-  it('leaves the count untouched when the reset date is already today', () => {
-    useSettingsStore.setState({ exportDailyCount: 3, exportDailyResetDate: todayString() });
-
-    useSettingsStore.getState().resetExportCountIfNewDay();
-
-    const state = useSettingsStore.getState();
-    expect(state.exportDailyCount).toBe(3);
-    expect(state.exportDailyResetDate).toBe(todayString());
-  });
-});
-
-describe('incrementExportCount', () => {
-  afterEach(() => {
-    useSettingsStore.setState({ exportDailyCount: 0, exportDailyResetDate: todayString() });
-  });
-
-  it('resets a stale count to 0 before incrementing, instead of adding onto it', () => {
-    useSettingsStore.setState({ exportDailyCount: 3, exportDailyResetDate: yesterdayString() });
-
-    useSettingsStore.getState().incrementExportCount();
-
-    const state = useSettingsStore.getState();
-    expect(state.exportDailyCount).toBe(1);
-    expect(state.exportDailyResetDate).toBe(todayString());
-  });
-
-  it('adds onto the count within the same day', () => {
-    useSettingsStore.setState({ exportDailyCount: 1, exportDailyResetDate: todayString() });
-
-    useSettingsStore.getState().incrementExportCount();
-
-    expect(useSettingsStore.getState().exportDailyCount).toBe(2);
-  });
-});
-
 describe('profile', () => {
   afterEach(() => {
     useSettingsStore.setState({ profileName: null, profilePhotoUri: null });

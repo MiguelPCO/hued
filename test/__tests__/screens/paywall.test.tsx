@@ -75,11 +75,11 @@ describe('PaywallScreen — plans', () => {
 
 describe('PaywallScreen — analytics', () => {
   it('records the paywall view once with the trigger that opened it', async () => {
-    mount(undefined, 'export_limit');
+    mount(undefined, 'resolution_locked');
     await screen.findByText('Mensual');
 
     expect(trackEvent).toHaveBeenCalledTimes(1);
-    expect(trackEvent).toHaveBeenCalledWith('paywall_shown', { trigger: 'export_limit' });
+    expect(trackEvent).toHaveBeenCalledWith('paywall_shown', { trigger: 'resolution_locked' });
   });
 
   it('attributes a paywall opened without a trigger to "settings"', async () => {
@@ -105,7 +105,7 @@ describe('PaywallScreen — purchase', () => {
     ['lifetime', LIFETIME, 2],
   ] as const)('buying the %s plan records it and closes the paywall', async (plan, selected, index) => {
     (purchasePackage as jest.Mock).mockResolvedValue({});
-    mount(undefined, 'export_limit');
+    mount(undefined, 'resolution_locked');
 
     fireEvent.press((await screen.findAllByText('Elegir'))[index]);
 
@@ -113,7 +113,7 @@ describe('PaywallScreen — purchase', () => {
 
     expect(routerMock.back).toHaveBeenCalledTimes(1);
     expect(purchasePackage).toHaveBeenCalledWith(selected);
-    expect(trackEvent).toHaveBeenCalledWith('subscription_purchased', { trigger: 'export_limit', plan });
+    expect(trackEvent).toHaveBeenCalledWith('subscription_purchased', { trigger: 'resolution_locked', plan });
   });
 
   it('stays open and silent when the user cancels the store dialog', async () => {
@@ -191,5 +191,22 @@ describe('PaywallScreen — restore and legal', () => {
 
     expect(Linking.openURL).toHaveBeenNthCalledWith(1, TERMS_URL);
     expect(Linking.openURL).toHaveBeenNthCalledWith(2, PRIVACY_URL);
+  });
+});
+
+describe('PaywallScreen — renewal disclosure', () => {
+  it('says the subscriptions renew automatically, how to cancel, and that lifetime is one payment', async () => {
+    mount();
+
+    expect(await screen.findByText(/se renuevan automáticamente/)).toBeOnTheScreen();
+    expect(screen.getByText(/cancelar cuando quieras/)).toBeOnTheScreen();
+    expect(screen.getByText(/pago único/)).toBeOnTheScreen();
+  });
+
+  it('mentions only the one-off payment when only the lifetime plan is offered', async () => {
+    mount([LIFETIME]);
+
+    expect(await screen.findByText(/pago único/)).toBeOnTheScreen();
+    expect(screen.queryByText(/se renuevan automáticamente/)).toBeNull();
   });
 });

@@ -18,7 +18,7 @@ Unlike existing palette tools (Adobe Color, Coolors, Pigments, Palette Cam) that
 
 **The wedge:** existing apps make hex codes. Hued makes beautiful artifacts.
 
-**Business model:** Freemium with paywall via RevenueCat. Free tier with watermark + daily export limit. Premium $2.99/month or $19.99/year unlocks unlimited exports, no watermark, premium templates (Phase 2), and cloud sync (Phase 2).
+**Business model:** Freemium with paywall via RevenueCat. Free tier with watermark, exports unlimited up to 2x. Pro ($2.99/month, $19.99/year with a 7-day trial, or a lifetime purchase) removes the watermark and unlocks 4x export. Premium templates and cloud sync are later phases.
 
 **MVP target platforms:** Android first via Google Play Store. iOS in Phase 2 (~80% codebase reuse with Expo).
 
@@ -205,11 +205,11 @@ These are the non-negotiables that constrain every product decision:
 | History | Saved palettes list | P0 |
 | History | Favorites | P1 |
 | History | Search by color name | P2 (Phase 2) |
-| Monetization | Free tier (3 exports/day, watermark) | P0 |
+| Monetization | Free tier (unlimited 1x/2x exports, watermark) | P0 |
 | Monetization | Premium paywall (RevenueCat) | P0 |
 | Monetization | Restore purchases | P0 |
 | Settings | Subscription management | P0 |
-| Onboarding | 3-slide value prop | P0 |
+| Onboarding | Empty-state "how it works" steps on the home (no slides) | P0 |
 
 #### Phase 2 (Post-launch)
 
@@ -308,32 +308,26 @@ Hued/
 
 - Average exports per WAU: 3+
 - Average session duration: 90+ seconds
-- Free tier daily limit hit rate (signal for paywall trigger effectiveness): 15%+ of free users hit limit in 30 days
+- Paywall conversion by trigger (watermark tap, locked 4x, Settings): track which one converts
+- If 30-day free to paid conversion stays under 2%, tighten the free tier
 
 ### 6.2 Monetization model
 
 #### Free tier
 
-- 3 exports per day (rolling 24h window)
-- Watermark "Made with Hued" in bottom corner on all exports
-- All 5 archetypes
-- 3 default fonts
-- 3 corner styles
+- Unlimited exports at 1x and 2x
+- Watermark: "hued" on a dark pill at the right edge, always on top of the cards
+- Everything the app has today: all archetypes, fonts, corner and card styles, all extraction features
 - Local history (no cloud sync)
-- All extraction features
 
-#### Premium tier — $2.99/month or $19.99/year
+#### Pro tier — $2.99/month, $19.99/year (7-day trial, annual only) or $39.99 lifetime
 
 (annual price = $1.67/month effective, ~45% savings vs monthly)
 
-- Unlimited exports
 - No watermark
-- All 5 archetypes (Phase 2: +10 premium templates)
-- 8 fonts (Phase 2: custom font upload)
-- All corner & card styles
-- Cloud sync (Phase 2)
-- Export at 4K resolution
-- Priority support
+- Export at 4x resolution (4320 x 5400)
+- Later, only for what gets built after launch: more fonts or custom fonts, extra templates, more export formats. Cloud sync would be a separate, higher tier. The lifetime plan covers what exists today, not future cloud services.
+- Lapsed Pro: nothing is locked or deleted. Palettes stay, new exports carry the watermark.
 
 #### Pricing rationale
 
@@ -346,7 +340,7 @@ Hued/
 
 | Trigger | Context | Expected conversion |
 |---|---|---|
-| Daily limit reached | 4th export attempt in 24h | Highest — user is engaged |
+| Locked 4x export | Free user taps 4x in the export sheet | Highest — user is about to export |
 | Watermark tap | Tap on watermark in preview | High — explicit intent |
 | Settings upgrade tap | User self-initiates from Settings | High — explicit intent |
 | Premium template tap | Phase 2 — tap on locked template | Medium |
