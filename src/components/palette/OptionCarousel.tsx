@@ -33,7 +33,6 @@ export function OptionCarousel<T extends string | number>({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={styles.scroll}
       contentContainerStyle={styles.content}
     >
       {options.map((option) => {
@@ -62,7 +61,6 @@ export function OptionCarousel<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
-  scroll: { marginHorizontal: -Spacing.md },
   content: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
   pill: {
     paddingHorizontal: Spacing.md,
