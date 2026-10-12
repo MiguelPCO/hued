@@ -35,6 +35,7 @@ function setup(overrides: Partial<Props> = {}) {
     onScaleChange: jest.fn(),
     onImageUpdated: jest.fn(),
     onPaletteSizeChange: jest.fn(),
+    onColorFilterChange: jest.fn(),
     onResetLibreLayout: jest.fn(),
     onLockedPress: jest.fn(),
     ...overrides,
@@ -181,6 +182,33 @@ describe('EditTabs — Colores', () => {
     fireEvent.press(screen.getByText('8'));
 
     expect(props.onPaletteSizeChange).not.toHaveBeenCalled();
+  });
+
+  it('shows the options of the chosen mode and extracts when one is picked', () => {
+    const props = setup();
+    openTab('Colores');
+
+    fireEvent.press(screen.getByText('Temperatura'));
+    expect(props.onColorFilterChange).not.toHaveBeenCalled(); // choosing a mode alone changes nothing
+    fireEvent.press(screen.getByText('Cálidos'));
+
+    expect(props.onColorFilterChange).toHaveBeenCalledWith({ mode: 'temperature', option: 'warm' });
+  });
+
+  it('going back to Auto re-extracts without a filter', () => {
+    const props = setup({ config: makeLayoutConfig({ colorMode: 'families', colorOption: 'red' }) });
+    openTab('Colores');
+
+    fireEvent.press(screen.getByText('Auto'));
+
+    expect(props.onColorFilterChange).toHaveBeenCalledWith({ mode: 'auto', option: null });
+  });
+
+  it('shows the notice when the photo has none of the chosen colour', () => {
+    setup({ colorNotice: 'Esta foto casi no tiene rojos' });
+    openTab('Colores');
+
+    expect(screen.getByText('Esta foto casi no tiene rojos')).toBeOnTheScreen();
   });
 });
 

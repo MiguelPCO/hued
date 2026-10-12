@@ -4,7 +4,8 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { trackEvent } from '@/lib/analytics/events';
-import { extractColors, ExtractError } from '@/lib/color/extract';
+import type { ColorFilter } from '@/lib/color/colorModes';
+import { extractColors, ExtractError, NoMatchError } from '@/lib/color/extract';
 import { updatePaletteColors, updatePaletteImage } from '@/lib/db/palettes';
 import { optimize, thumbnail } from '@/lib/utils/image';
 import { Colors, Radius, Spacing } from '@/lib/tokens';
@@ -31,10 +32,11 @@ interface Props {
   paletteId: string;
   imageUri: string;
   paletteSize: number;
-  onImageUpdated: (updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => void;
+  colorFilter?: ColorFilter;
+  onImageUpdated: (updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[]; filterFellBack?: boolean }) => void;
 }
 
-export function CropTab({ paletteId, imageUri, paletteSize, onImageUpdated }: Props) {
+export function CropTab({ paletteId, imageUri, paletteSize, colorFilter, onImageUpdated }: Props) {
   const [cropping, setCropping] = useState<AspectRatio | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,8 +76,16 @@ export function CropTab({ paletteId, imageUri, paletteSize, onImageUpdated }: Pr
       );
 
       let colors: ExtractedColor[] = [];
+      let filterFellBack = false;
       try {
-        colors = await extractColors(newThumbnailUri, paletteSize);
+        try {
+          colors = await extractColors(newThumbnailUri, paletteSize, colorFilter);
+        } catch (err) {
+          // The new crop has none of the chosen colour: keep the photo's palette usable instead of empty.
+          if (!(err instanceof NoMatchError)) throw err;
+          filterFellBack = true;
+          colors = await extractColors(newThumbnailUri, paletteSize);
+        }
         await updatePaletteColors(paletteId, colors);
       } catch (extractErr) {
         colors = [];
@@ -86,7 +96,7 @@ export function CropTab({ paletteId, imageUri, paletteSize, onImageUpdated }: Pr
       }
 
       trackEvent('config_changed', { config_key: 'crop_ratio' });
-      onImageUpdated({ imageUri: newImageUri, thumbnailUri: newThumbnailUri, colors });
+      onImageUpdated({ imageUri: newImageUri, thumbnailUri: newThumbnailUri, colors, filterFellBack });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       const isUserCancel =

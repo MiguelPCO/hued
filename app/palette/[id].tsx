@@ -26,7 +26,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
-import { extractColors, ExtractError } from '@/lib/color/extract';
+import { optionLabel, type ColorFilter } from '@/lib/color/colorModes';
+import { extractColors, ExtractError, NoMatchError } from '@/lib/color/extract';
 import { exportPalette, RESOLUTIONS } from '@/lib/export/exportPalette';
 import type { ExportResolution } from '@/lib/export/exportPalette';
 import {
@@ -42,7 +43,6 @@ import { useSettingsStore } from '@/lib/store/settingsStore';
 import { Colors, Spacing, Radius } from '@/lib/tokens';
 import type {
   ArchetypeId,
-  ExtractedColor,
   FreeformSwatch,
   LayoutConfig,
   Palette,
@@ -62,6 +62,7 @@ export default function PaletteScreen() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [extracting, setExtracting] = useState(false);
+  const [colorNotice, setColorNotice] = useState<string | null>(null);
   const [canvasMaxHeight, setCanvasMaxHeight] = useState(0);
   const [exportSheetVisible, setExportSheetVisible] = useState(false);
   const [exportState, setExportState] = useState<'idle' | 'exporting'>('idle');
@@ -213,13 +214,21 @@ export default function PaletteScreen() {
     [updateConfig],
   );
 
+  // The photo has none of the chosen colour: leave the palette as it is and say so under the chips.
+  const reportNoMatch = useCallback((filter: ColorFilter) => {
+    setColorNotice(`Esta foto casi no tiene colores de tipo «${optionLabel(filter.mode, filter.option)}».`);
+    trackEvent('extract_mode_empty', { mode: filter.mode, option: filter.option ?? 'none' });
+  }, []);
+
   const handlePaletteSizeChange = useCallback(
     async (newSize: number) => {
-      if (!palette) return;
-      if (newSize === palette.colors.length) return; // no-op: same size already extracted
+      if (!palette || !config) return;
+      if (newSize === config.paletteSize) return; // no-op: same size already extracted
+      const filter: ColorFilter = { mode: config.colorMode, option: config.colorOption };
       setExtracting(true);
       try {
-        const colors = await extractColors(palette.thumbnailUri, newSize);
+        const colors = await extractColors(palette.thumbnailUri, newSize, filter);
+        setColorNotice(null);
         await updatePaletteColors(palette.id, colors);
         setPalette((p) => (p ? { ...p, colors } : p));
         // Reset (not remap) per ADR-0001: colors re-sort by luminosity on
@@ -238,14 +247,46 @@ export default function PaletteScreen() {
         }));
         trackEvent('config_changed', { config_key: 'paletteSize' });
       } catch (err) {
-        const reason = err instanceof ExtractError ? err.message : 'unknown';
-        trackEvent('extract_failed', { reason });
-        Sentry.captureException(err);
+        if (err instanceof NoMatchError) {
+          reportNoMatch(filter);
+        } else {
+          const reason = err instanceof ExtractError ? err.message : 'unknown';
+          trackEvent('extract_failed', { reason });
+          Sentry.captureException(err);
+        }
       } finally {
         setExtracting(false);
       }
     },
-    [palette, updateConfig]
+    [palette, config, updateConfig, reportNoMatch]
+  );
+
+  // Re-extracts from the pixels that fit the chosen kind of colour. Only the libre layout is reset
+  // (swatch indices point at the old colours, ADR-0001); corners, style and fonts stay (ADR-0003).
+  const handleColorFilterChange = useCallback(
+    async (filter: ColorFilter) => {
+      if (!palette || !config) return;
+      setExtracting(true);
+      try {
+        const colors = await extractColors(palette.thumbnailUri, config.paletteSize, filter);
+        await updatePaletteColors(palette.id, colors);
+        setPalette((p) => (p ? { ...p, colors } : p));
+        setColorNotice(null);
+        updateConfig({ colorMode: filter.mode, colorOption: filter.option, freeformSwatches: [] });
+        trackEvent('extract_mode_selected', { mode: filter.mode, option: filter.option ?? 'none' });
+      } catch (err) {
+        if (err instanceof NoMatchError) {
+          reportNoMatch(filter);
+        } else {
+          const reason = err instanceof ExtractError ? err.message : 'unknown';
+          trackEvent('extract_failed', { reason });
+          Sentry.captureException(err);
+        }
+      } finally {
+        setExtracting(false);
+      }
+    },
+    [palette, config, updateConfig, reportNoMatch]
   );
 
   // After a camera capture the palette is the only screen in the stack, so back would be unhandled.
@@ -413,10 +454,16 @@ export default function PaletteScreen() {
         updateConfig={updateConfig}
         onSelectArchetype={selectArchetype}
         onScaleChange={handleScaleChange}
-        onImageUpdated={(updates: { imageUri: string; thumbnailUri: string; colors: ExtractedColor[] }) => {
+        onImageUpdated={({ filterFellBack, ...updates }) => {
           setPalette((p) => (p ? { ...p, ...updates } : p));
+          if (filterFellBack) {
+            reportNoMatch({ mode: config.colorMode, option: config.colorOption });
+            updateConfig({ colorMode: 'auto', colorOption: null, freeformSwatches: [] });
+          }
         }}
         onPaletteSizeChange={handlePaletteSizeChange}
+        onColorFilterChange={handleColorFilterChange}
+        colorNotice={colorNotice}
         onResetLibreLayout={resetLibreLayout}
         paletteSizeChanging={extracting}
         onLockedPress={() => {

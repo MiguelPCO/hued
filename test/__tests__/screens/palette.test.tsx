@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
 import { baseStyleConfig, libreSeed, NEUTRAL_SCALES } from '@/components/compose/archetypes/cardLayouts';
 import { trackEvent } from '@/lib/analytics/events';
-import { ExtractError, extractColors } from '@/lib/color/extract';
+import { ExtractError, NoMatchError, extractColors } from '@/lib/color/extract';
 import {
   deletePalette, getPalette, incrementExportCount, updatePaletteColors, updatePaletteLayout,
 } from '@/lib/db/palettes';
@@ -371,7 +371,7 @@ describe('PaletteScreen — palette size', () => {
     setSize('8');
     await settle();
 
-    expect(extractColors).toHaveBeenCalledWith(palette.thumbnailUri, 8);
+    expect(extractColors).toHaveBeenCalledWith(palette.thumbnailUri, 8, { mode: 'auto', option: null });
     expect(updatePaletteColors).toHaveBeenCalledWith('p1', makeColors(8));
     await advance(500);
     expect(lastWrite()).toMatchObject({ paletteSize: 8, freeformSwatches: [] });
@@ -430,6 +430,63 @@ describe('PaletteScreen — palette size', () => {
     await advance(500);
     expect(updatePaletteLayout).not.toHaveBeenCalled();
     expect(updatePaletteColors).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaletteScreen — colour modes', () => {
+  const pick = (mode: string, option: string) => {
+    fireEvent.press(screen.getByText('Colores'));
+    fireEvent.press(screen.getByText(mode));
+    fireEvent.press(screen.getByText(option));
+  };
+
+  it('re-extracts from the chosen kind of colour, saves it and resets only the libre swatches', async () => {
+    const libre = makeLayoutConfig({
+      archetypeId: 'libre',
+      libreSource: 'columnas',
+      cornerRadius: 0,
+      freeformSwatches: libreSeed('columnas', 5, NEUTRAL_SCALES),
+    });
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: libre }));
+
+    pick('Temperatura', 'Cálidos');
+    await settle();
+
+    expect(extractColors).toHaveBeenCalledWith(palette.thumbnailUri, 5, { mode: 'temperature', option: 'warm' });
+    expect(updatePaletteColors).toHaveBeenCalledWith('p1', makeColors(5));
+    await advance(500);
+    expect(lastWrite()).toMatchObject({
+      colorMode: 'temperature',
+      colorOption: 'warm',
+      archetypeId: 'libre',
+      cornerRadius: 0,
+    });
+    expect(trackEvent).toHaveBeenCalledWith('extract_mode_selected', { mode: 'temperature', option: 'warm' });
+  });
+
+  it('keeps the palette and says so when the photo has none of that colour', async () => {
+    (extractColors as jest.Mock).mockRejectedValueOnce(new NoMatchError());
+    await mount();
+
+    pick('Familias', 'Rojos');
+    await settle();
+
+    expect(screen.getByText(/casi no tiene colores de tipo «Rojos»/)).toBeOnTheScreen();
+    expect(trackEvent).toHaveBeenCalledWith('extract_mode_empty', { mode: 'families', option: 'red' });
+    await advance(500);
+    expect(updatePaletteColors).not.toHaveBeenCalled();
+    expect(updatePaletteLayout).not.toHaveBeenCalled();
+  });
+
+  it('re-applies the saved mode when the size changes', async () => {
+    const warm = makeLayoutConfig({ colorMode: 'temperature', colorOption: 'warm' });
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: warm }));
+
+    fireEvent.press(screen.getByText('Colores'));
+    fireEvent.press(screen.getByText('8'));
+    await settle();
+
+    expect(extractColors).toHaveBeenCalledWith(palette.thumbnailUri, 8, { mode: 'temperature', option: 'warm' });
   });
 });
 

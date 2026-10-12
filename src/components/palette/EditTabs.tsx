@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 import { PILL_CORNER_RADIUS } from '@/components/compose/archetypes/shared';
+import { ColorModePanel } from '@/components/palette/ColorModePanel';
 import { CornerControl } from '@/components/palette/CornerControl';
 import { CropTab } from '@/components/palette/CropTab';
 import { FontPicker } from '@/components/palette/FontPicker';
 import { OptionCarousel } from '@/components/palette/OptionCarousel';
-import { PaletteSizeControl } from '@/components/palette/PaletteSizeControl';
 import { ValueSlider } from '@/components/palette/ValueSlider';
 import { Text } from '@/components/ui/Text';
 import { ARCHETYPES } from '@/data/archetypes';
 import { trackEvent } from '@/lib/analytics/events';
+import type { ColorFilter } from '@/lib/color/colorModes';
 import { Colors, Spacing } from '@/lib/tokens';
 import type {
   ArchetypeId,
@@ -89,8 +90,13 @@ interface Props {
     imageUri: string;
     thumbnailUri: string;
     colors: ExtractedColor[];
+    /** The photo had none of the chosen colour, so the new palette fell back to auto. */
+    filterFellBack?: boolean;
   }) => void;
   onPaletteSizeChange: (paletteSize: number) => void;
+  onColorFilterChange: (filter: ColorFilter) => void;
+  /** Why the last colour filter didn't apply (photo has none of that colour). */
+  colorNotice?: string | null;
   onResetLibreLayout: () => void;
   paletteSizeChanging?: boolean;
   onLockedPress: () => void;
@@ -105,6 +111,8 @@ export function EditTabs({
   onScaleChange,
   onImageUpdated,
   onPaletteSizeChange,
+  onColorFilterChange,
+  colorNotice,
   onResetLibreLayout,
   paletteSizeChanging,
   onLockedPress,
@@ -148,6 +156,7 @@ export function EditTabs({
             paletteId={paletteId}
             imageUri={imageUri}
             paletteSize={config.paletteSize}
+            colorFilter={{ mode: config.colorMode, option: config.colorOption }}
             onImageUpdated={onImageUpdated}
           />
         )}
@@ -182,10 +191,13 @@ export function EditTabs({
         )}
 
         {activeTab === 'colors' && (
-          <PaletteSizeControl
-            value={config.paletteSize ?? 5}
-            onChange={onPaletteSizeChange}
-            disabled={paletteSizeChanging}
+          <ColorModePanel
+            filter={{ mode: config.colorMode, option: config.colorOption }}
+            onFilterChange={onColorFilterChange}
+            paletteSize={config.paletteSize ?? 5}
+            onPaletteSizeChange={onPaletteSizeChange}
+            busy={paletteSizeChanging}
+            notice={colorNotice}
           />
         )}
 

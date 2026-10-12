@@ -1,5 +1,5 @@
 import { Skia } from '@shopify/react-native-skia';
-import { extractColors, ExtractError } from '../extract';
+import { extractColors, ExtractError, NoMatchError } from '../extract';
 
 jest.mock('@shopify/react-native-skia', () => ({
   Skia: {
@@ -99,5 +99,53 @@ describe('extractColors', () => {
       expect(c.hslLightness).toBeGreaterThanOrEqual(0);
       expect(c.hslLightness).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+function mixedPixels(parts: [number, number, number, number][]): Uint8Array {
+  const total = parts.reduce((n, p) => n + p[3], 0);
+  const buf = new Uint8Array(total * 4);
+  let o = 0;
+  for (const [r, g, b, count] of parts) {
+    for (let i = 0; i < count; i++, o += 4) {
+      buf[o] = r + (i % 7); buf[o + 1] = g; buf[o + 2] = b; buf[o + 3] = 255;
+    }
+  }
+  return buf;
+}
+
+describe('extractColors determinism and filters', () => {
+  // Spread of reds, blues and greys, large enough for k-means to have real choices.
+  const photo = () => mixedPixels([
+    [200, 30, 30, 400], [230, 60, 40, 300], [30, 60, 200, 400], [60, 90, 230, 300], [128, 128, 128, 300],
+  ]);
+
+  it('gives the same palette for the same photo every time', async () => {
+    (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(photo(), 40, 50));
+    const a = await extractColors('file:///thumb.jpg', 5);
+    const b = await extractColors('file:///thumb.jpg', 5);
+    expect(a.map((c) => c.hex)).toEqual(b.map((c) => c.hex));
+  });
+
+  it('a temperature filter only returns colours from matching pixels', async () => {
+    (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(photo(), 40, 50));
+    const colors = await extractColors('file:///thumb.jpg', 3, { mode: 'temperature', option: 'warm' });
+    expect(colors.length).toBeGreaterThanOrEqual(3);
+    for (const c of colors) expect(c.rgb[0]).toBeGreaterThan(c.rgb[2]); // reds, never the blues
+  });
+
+  it('throws NoMatchError when the photo has none of the requested colour', async () => {
+    (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(photo(), 40, 50));
+    await expect(
+      extractColors('file:///thumb.jpg', 5, { mode: 'families', option: 'green' }),
+    ).rejects.toBeInstanceOf(NoMatchError);
+  });
+
+  it('fills fewer swatches when the filtered pool has few distinct colours', async () => {
+    const px = mixedPixels([[200, 30, 30, 5000], [30, 60, 200, 100]]); // reds vary by 7 shades only
+    (Skia.Image.MakeImageFromEncoded as jest.Mock).mockReturnValue(makeMockImage(px, 100, 51));
+    const colors = await extractColors('file:///thumb.jpg', 8, { mode: 'temperature', option: 'warm' });
+    expect(colors.length).toBeLessThan(8);
+    expect(colors.length).toBeGreaterThanOrEqual(3);
   });
 });

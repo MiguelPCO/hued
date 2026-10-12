@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react-native';
 import ImageCropPicker from 'react-native-image-crop-picker';
 
 import { trackEvent } from '@/lib/analytics/events';
-import { extractColors, ExtractError } from '@/lib/color/extract';
+import { extractColors, ExtractError, NoMatchError } from '@/lib/color/extract';
 import { updatePaletteColors, updatePaletteImage } from '@/lib/db/palettes';
 import { optimize, thumbnail } from '@/lib/utils/image';
 import { makeColors } from '@test/factories';
@@ -92,14 +92,26 @@ describe('CropTab', () => {
     expect(optimize).toHaveBeenCalledWith('file:///crop.jpg');
     expect(thumbnail).toHaveBeenCalledWith('file:///crop.jpg');
     expect(updatePaletteImage).toHaveBeenCalledWith('p1', 'file:///opt.jpg', 'file:///thumb.jpg');
-    expect(extractColors).toHaveBeenCalledWith('file:///documents/new-thumb.jpg', 5);
+    expect(extractColors).toHaveBeenCalledWith('file:///documents/new-thumb.jpg', 5, undefined);
     expect(updatePaletteColors).toHaveBeenCalledWith('p1', COLORS);
     expect(onImageUpdated).toHaveBeenCalledWith({
       imageUri: 'file:///documents/new-full.jpg',
       thumbnailUri: 'file:///documents/new-thumb.jpg',
       colors: COLORS,
+      filterFellBack: false,
     });
     expect(trackEvent).toHaveBeenCalledWith('config_changed', { config_key: 'crop_ratio' });
+  });
+
+  it('re-applies the chosen colour filter, and falls back to auto when the new crop has none of it', async () => {
+    (extractColors as jest.Mock).mockRejectedValueOnce(new NoMatchError());
+    const { onImageUpdated } = setup({ colorFilter: { mode: 'families', option: 'red' } });
+    press('1:1');
+    await waitFor(() => expect(onImageUpdated).toHaveBeenCalled());
+
+    expect(extractColors).toHaveBeenNthCalledWith(1, expect.any(String), 5, { mode: 'families', option: 'red' });
+    expect(extractColors).toHaveBeenNthCalledWith(2, expect.any(String), 5);
+    expect(onImageUpdated).toHaveBeenCalledWith(expect.objectContaining({ colors: COLORS, filterFellBack: true }));
   });
 
   it('re-extracts with the palette size it was given', async () => {
@@ -108,7 +120,7 @@ describe('CropTab', () => {
     press('1:1');
     await waitFor(() => expect(onImageUpdated).toHaveBeenCalled());
 
-    expect(extractColors).toHaveBeenCalledWith(expect.any(String), 8);
+    expect(extractColors).toHaveBeenCalledWith(expect.any(String), 8, undefined);
   });
 
   it('shows "..." on the active ratio and ignores other presses while cropping', async () => {

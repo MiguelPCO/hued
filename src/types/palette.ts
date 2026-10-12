@@ -1,4 +1,5 @@
 import type { FontKey } from '@/data/fonts';
+import type { ColorMode, ColorOption } from '@/lib/color/colorModes';
 
 export interface ExtractedColor {
   hex: string;
@@ -88,6 +89,10 @@ export interface LayoutConfig {
   freeformSwatches: FreeformSwatch[];
   /** The card archetype libre starts from (and returns to on reset / palette-size change). */
   libreSource: CardArchetypeId;
+  /** Which kind of colours to pull from the photo; rows saved before this field existed read as auto (see DEFAULT_LAYOUT_CONFIG). */
+  colorMode: ColorMode;
+  /** The choice within `colorMode` (e.g. 'warm' for temperature); null for auto. */
+  colorOption: ColorOption | null;
 }
 
 export type CaptureSource = 'camera' | 'gallery';
@@ -140,4 +145,6 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   paletteSize: 5,
   freeformSwatches: [],
   libreSource: 'pila',
+  colorMode: 'auto',
+  colorOption: null,
 };

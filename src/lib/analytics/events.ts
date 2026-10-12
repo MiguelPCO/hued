@@ -16,6 +16,8 @@ type EventMap = {
   // Extract
   extract_completed: { duration_ms: number; image_size_kb: number };
   extract_failed: { reason: string };
+  extract_mode_selected: { mode: string; option: string };
+  extract_mode_empty: { mode: string; option: string };
 
   // Compose
   archetype_selected: { archetype_id: ArchetypeId };

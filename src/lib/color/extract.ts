@@ -2,6 +2,15 @@ import { Skia, ColorType, AlphaType } from '@shopify/react-native-skia';
 import type { ExtractedColor } from '@/types/palette';
 import { rgbToHex, rgbToHsl, rgbToLab } from './colorMath';
 import { findColorName } from './colorNames';
+import { distinctCount, filterSamples, T, type ColorFilter, type RGB } from './colorModes';
+
+// The photo has (almost) no pixels of the requested kind — the caller keeps the current palette.
+export class NoMatchError extends Error {
+  constructor() {
+    super('No matching colors in photo');
+    this.name = 'NoMatchError';
+  }
+}
 
 export class ExtractError extends Error {
   constructor(msg: string) {
@@ -14,19 +23,40 @@ const DEFAULT_K = 5;
 const MAX_ITER = 20;
 const SAMPLE_STEP = 4;
 
-type RGB = [number, number, number];
-
 function dist2(a: RGB, b: RGB): number {
   return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
 }
 
-function initCentroids(samples: RGB[], k: number): RGB[] {
+// Seeded PRNG (mulberry32) so the same photo always gives the same palette.
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// FNV-1a over the length and ~64 evenly spaced samples: cheap, and stable for a given pool of pixels.
+function seedFrom(samples: RGB[]): number {
+  let h = 2166136261 ^ samples.length;
+  const step = Math.max(1, Math.floor(samples.length / 64));
+  for (let i = 0; i < samples.length; i += step) {
+    const [r, g, b] = samples[i];
+    h = Math.imul(h ^ ((r << 16) | (g << 8) | b), 16777619);
+  }
+  return h >>> 0;
+}
+
+function initCentroids(samples: RGB[], k: number, rand: () => number): RGB[] {
   const centroids: RGB[] = [];
-  centroids.push(samples[Math.floor(Math.random() * samples.length)]);
+  centroids.push(samples[Math.floor(rand() * samples.length)]);
   while (centroids.length < k) {
     const dists = samples.map((s) => Math.min(...centroids.map((c) => dist2(s, c))));
     const sum = dists.reduce((a, b) => a + b, 0);
-    let r = Math.random() * sum;
+    let r = rand() * sum;
     let chosen = samples[samples.length - 1];
     for (let j = 0; j < samples.length; j++) {
       r -= dists[j];
@@ -101,9 +131,10 @@ function kmeans(samples: RGB[], centroids: RGB[], k: number): RGB[] {
 
 export async function extractColors(
   thumbnailUri: string,
-  paletteSize: number = DEFAULT_K
+  paletteSize: number = DEFAULT_K,
+  filter: ColorFilter = { mode: 'auto', option: null },
 ): Promise<ExtractedColor[]> {
-  const k = paletteSize;
+  let k = paletteSize;
   const response = await fetch(thumbnailUri);
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -128,11 +159,19 @@ export async function extractColors(
   }
   if (samples.length < k) throw new ExtractError(`Too few opaque pixels: ${samples.length}`);
 
-  const centroids = kmeans(samples, initCentroids(samples, k), k);
-  const assignments = assign(samples, centroids);
+  const pool = filterSamples(samples, filter, k);
+  if (!pool) throw new NoMatchError();
+  // Never invent colours: a filtered pool with fewer distinct colours than k fills fewer swatches.
+  if (pool !== samples) {
+    k = distinctCount(pool, k);
+    if (k < T.minSwatches) throw new NoMatchError();
+  }
+
+  const centroids = kmeans(pool, initCentroids(pool, k, seededRandom(seedFrom(pool))), k);
+  const assignments = assign(pool, centroids);
   const counts = new Array<number>(k).fill(0);
   assignments.forEach((c) => counts[c]++);
-  const total = samples.length;
+  const total = pool.length;
 
   const colors: ExtractedColor[] = centroids.map(([r, g, b], i) => {
     const lab = rgbToLab(r, g, b);
