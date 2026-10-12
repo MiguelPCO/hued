@@ -59,6 +59,7 @@
     "expo-splash-screen": "~57.0.9",
     "expo-sqlite": "~57.0.4",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.25",
     "posthog-react-native": "^4.45.6",
     "react": "19.2.3",
     "react-native": "0.86.3",

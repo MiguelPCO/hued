@@ -80,6 +80,12 @@
         "projectId": "919e5394-9b11-434f-ae34-ba9d25379b1a"
       }
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/919e5394-9b11-434f-ae34-ba9d25379b1a"
+    },
     "owner": "mikeloide69"
   }
 }
