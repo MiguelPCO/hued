@@ -10,10 +10,12 @@ import { MODE_OPTIONS, type ColorFilter, type ColorMode, type ColorOption } from
 import { Colors, Spacing } from '@/lib/tokens';
 
 const MODES: { key: ColorMode; label: string }[] = [
+  // 'manual' is the eyedropper: pressing it opens the overlay instead of switching the shown mode.
   { key: 'auto', label: 'Auto' },
   { key: 'temperature', label: 'Temperatura' },
   { key: 'properties', label: 'Propiedades' },
   { key: 'families', label: 'Familias' },
+  { key: 'manual', label: 'Cuentagotas' },
 ];
 
 interface Props {
@@ -21,24 +23,26 @@ interface Props {
   onFilterChange: (filter: ColorFilter) => void;
   paletteSize: number;
   onPaletteSizeChange: (paletteSize: number) => void;
+  onOpenEyedropper: () => void;
   /** An extraction (size or filter) is in flight — block further changes until it lands. */
   busy?: boolean;
   /** Why the last filter didn't apply, shown under the chips until another option is picked. */
   notice?: string | null;
 }
 
-export function ColorModePanel({ filter, onFilterChange, paletteSize, onPaletteSizeChange, busy, notice }: Props) {
+export function ColorModePanel({ filter, onFilterChange, paletteSize, onPaletteSizeChange, onOpenEyedropper, busy, notice }: Props) {
   // The mode row can show a mode whose option hasn't been picked yet (nothing is extracted until then).
   const [shownMode, setShownMode] = useState<ColorMode>(filter.mode);
-  const options = shownMode === 'auto' ? null : MODE_OPTIONS[shownMode];
+  const options = shownMode === 'auto' || shownMode === 'manual' ? null : MODE_OPTIONS[shownMode];
 
   return (
     <ScrollView style={styles.panelScroll} nestedScrollEnabled>
       <OptionCarousel
         options={MODES}
-        activeKey={shownMode}
+        activeKey={filter.mode === 'manual' ? 'manual' : shownMode}
         disabled={busy}
         onSelect={(mode) => {
+          if (mode === 'manual') return onOpenEyedropper();
           setShownMode(mode);
           if (mode === 'auto' && filter.mode !== 'auto') onFilterChange({ mode: 'auto', option: null });
         }}

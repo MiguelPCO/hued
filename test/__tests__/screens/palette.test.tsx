@@ -17,6 +17,14 @@ import { makeColors, makeLayoutConfig, makePalette } from '@test/factories';
 import { resetRouterMocks, routerMock, searchParamsMock } from '@test/router';
 
 jest.mock('@/lib/analytics/events', () => ({ trackEvent: jest.fn() }));
+// The real overlay is a gesture surface; here a button stands in for "the user picked [1, 2, 3] for swatch 2".
+jest.mock('@/components/palette/EyedropperOverlay', () => {
+  const { Pressable, Text } = jest.requireActual('react-native');
+  return {
+    EyedropperOverlay: (p: { visible: boolean; onPick: (i: number, rgb: number[]) => void }) =>
+      p.visible ? <Pressable onPress={() => p.onPick(1, [1, 2, 3])}><Text>fake-pick</Text></Pressable> : null,
+  };
+});
 jest.mock('@/lib/db/palettes', () => ({
   getPalette: jest.fn(),
   updatePaletteColors: jest.fn(),
@@ -476,6 +484,36 @@ describe('PaletteScreen — colour modes', () => {
     await advance(500);
     expect(updatePaletteColors).not.toHaveBeenCalled();
     expect(updatePaletteLayout).not.toHaveBeenCalled();
+  });
+
+  it('replaces one swatch with the eyedropper, in place, and marks the palette as manual', async () => {
+    const base = makeColors(5);
+    await mount(makePalette({ id: 'p1', colors: base }));
+
+    fireEvent.press(screen.getByText('Colores'));
+    fireEvent.press(screen.getByText('Cuentagotas'));
+    fireEvent.press(screen.getByText('fake-pick'));
+    await settle();
+
+    const saved = (updatePaletteColors as jest.Mock).mock.calls.at(-1)![1];
+    expect(saved).toHaveLength(5);
+    expect(saved[1]).toMatchObject({ hex: '#010203', rgb: [1, 2, 3], weight: base[1].weight });
+    expect(saved[0]).toEqual(base[0]);
+    await advance(500);
+    expect(lastWrite()).toMatchObject({ colorMode: 'manual', colorOption: null });
+    expect(trackEvent).toHaveBeenCalledWith('eyedropper_used', {});
+  });
+
+  it('goes back to auto when a manual palette is re-extracted at another size', async () => {
+    const manual = makeLayoutConfig({ colorMode: 'manual' });
+    await mount(makePalette({ id: 'p1', colors: makeColors(5), layoutConfig: manual }));
+
+    fireEvent.press(screen.getByText('Colores'));
+    fireEvent.press(screen.getByText('8'));
+    await settle();
+    await advance(500);
+
+    expect(lastWrite()).toMatchObject({ colorMode: 'auto', colorOption: null, paletteSize: 8 });
   });
 
   it('re-applies the saved mode when the size changes', async () => {

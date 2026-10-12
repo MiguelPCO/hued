@@ -2,14 +2,15 @@ import { rgbToHsl } from './colorMath';
 
 export type RGB = [number, number, number];
 
-export type ColorMode = 'auto' | 'temperature' | 'properties' | 'families';
+/** `manual` = a swatch was replaced with the eyedropper; it filters nothing and the next extraction returns to auto. */
+export type ColorMode = 'auto' | 'manual' | 'temperature' | 'properties' | 'families';
 
 export type ColorOption =
   | 'warm' | 'cold' | 'neutral'
   | 'vivid' | 'light' | 'dark' | 'muted'
   | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'violet' | 'pastel' | 'earth';
 
-export const MODE_OPTIONS: Record<Exclude<ColorMode, 'auto'>, { key: ColorOption; label: string }[]> = {
+export const MODE_OPTIONS: Record<Exclude<ColorMode, 'auto' | 'manual'>, { key: ColorOption; label: string }[]> = {
   temperature: [
     { key: 'warm', label: 'Cálidos' },
     { key: 'cold', label: 'Fríos' },
@@ -108,7 +109,7 @@ const MATCHERS: Record<ColorOption, (h: number, s: number, l: number) => boolean
 };
 
 export function matchesFilter([r, g, b]: RGB, { mode, option }: ColorFilter): boolean {
-  if (mode === 'auto' || !option) return true;
+  if (mode === 'auto' || mode === 'manual' || !option) return true;
   const [h, s, l] = rgbToHsl(r, g, b);
   return MATCHERS[option](h, s, l);
 }
@@ -118,7 +119,7 @@ export function matchesFilter([r, g, b]: RGB, { mode, option }: ColorFilter): bo
  * that kind of colour (too few matches), so callers can leave the palette alone and say so.
  */
 export function filterSamples(samples: RGB[], filter: ColorFilter, k: number): RGB[] | null {
-  if (filter.mode === 'auto' || !filter.option) return samples;
+  if (filter.mode === 'auto' || filter.mode === 'manual' || !filter.option) return samples;
   const kept = samples.filter((rgb) => matchesFilter(rgb, filter));
   if (kept.length < Math.max(k, T.minSwatches, Math.ceil(samples.length * T.minMatchFraction))) return null;
   return kept;
@@ -135,6 +136,6 @@ export function distinctCount(samples: RGB[], cap: number): number {
 }
 
 export function optionLabel(mode: ColorMode, option: ColorOption | null): string {
-  if (mode === 'auto' || !option) return 'Auto';
+  if (mode === 'auto' || mode === 'manual' || !option) return mode === 'manual' ? 'Manual' : 'Auto';
   return MODE_OPTIONS[mode].find((o) => o.key === option)?.label ?? option;
 }

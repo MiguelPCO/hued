@@ -1,7 +1,6 @@
 import { Skia, ColorType, AlphaType } from '@shopify/react-native-skia';
 import type { ExtractedColor } from '@/types/palette';
-import { rgbToHex, rgbToHsl, rgbToLab } from './colorMath';
-import { findColorName } from './colorNames';
+import { describeRgb } from './eyedropper';
 import { distinctCount, filterSamples, T, type ColorFilter, type RGB } from './colorModes';
 
 // The photo has (almost) no pixels of the requested kind — the caller keeps the current palette.
@@ -129,12 +128,8 @@ function kmeans(samples: RGB[], centroids: RGB[], k: number): RGB[] {
   return centers;
 }
 
-export async function extractColors(
-  thumbnailUri: string,
-  paletteSize: number = DEFAULT_K,
-  filter: ColorFilter = { mode: 'auto', option: null },
-): Promise<ExtractedColor[]> {
-  let k = paletteSize;
+/** Decodes the thumbnail to RGBA (unpremultiplied) pixels. */
+export async function readThumbnailPixels(thumbnailUri: string): Promise<{ pixels: Uint8Array; width: number; height: number }> {
   const response = await fetch(thumbnailUri);
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -151,6 +146,16 @@ export async function extractColors(
     alphaType: AlphaType.Unpremul,
   }) as Uint8Array | null;
   if (!pixels) throw new ExtractError('readPixels returned null');
+  return { pixels, width: w, height: h };
+}
+
+export async function extractColors(
+  thumbnailUri: string,
+  paletteSize: number = DEFAULT_K,
+  filter: ColorFilter = { mode: 'auto', option: null },
+): Promise<ExtractedColor[]> {
+  let k = paletteSize;
+  const { pixels } = await readThumbnailPixels(thumbnailUri);
 
   const samples: RGB[] = [];
   for (let i = 0; i < pixels.length; i += 4 * SAMPLE_STEP) {
@@ -173,18 +178,7 @@ export async function extractColors(
   assignments.forEach((c) => counts[c]++);
   const total = pool.length;
 
-  const colors: ExtractedColor[] = centroids.map(([r, g, b], i) => {
-    const lab = rgbToLab(r, g, b);
-    const [, , hslL] = rgbToHsl(r, g, b);
-    return {
-      hex: rgbToHex(r, g, b),
-      rgb: [r, g, b],
-      lab,
-      name: findColorName(lab),
-      hslLightness: hslL,
-      weight: counts[i] / total,
-    };
-  });
+  const colors: ExtractedColor[] = centroids.map((c, i) => ({ ...describeRgb(c), weight: counts[i] / total }));
 
   return colors.sort((a, b) => b.lab[0] - a.lab[0]);
 }

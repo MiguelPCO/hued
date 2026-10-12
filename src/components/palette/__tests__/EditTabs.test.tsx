@@ -36,6 +36,7 @@ function setup(overrides: Partial<Props> = {}) {
     onImageUpdated: jest.fn(),
     onPaletteSizeChange: jest.fn(),
     onColorFilterChange: jest.fn(),
+    onOpenEyedropper: jest.fn(),
     onResetLibreLayout: jest.fn(),
     onLockedPress: jest.fn(),
     ...overrides,
@@ -193,6 +194,16 @@ describe('EditTabs — Colores', () => {
     fireEvent.press(screen.getByText('Cálidos'));
 
     expect(props.onColorFilterChange).toHaveBeenCalledWith({ mode: 'temperature', option: 'warm' });
+  });
+
+  it('opens the eyedropper from the mode row', () => {
+    const props = setup();
+    openTab('Colores');
+
+    fireEvent.press(screen.getByText('Cuentagotas'));
+
+    expect(props.onOpenEyedropper).toHaveBeenCalled();
+    expect(props.onColorFilterChange).not.toHaveBeenCalled();
   });
 
   it('going back to Auto re-extracts without a filter', () => {

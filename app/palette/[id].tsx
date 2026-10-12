@@ -20,14 +20,16 @@ import {
   scaleSwatches,
 } from '@/components/compose/archetypes/cardLayouts';
 import { EditTabs } from '@/components/palette/EditTabs';
+import { EyedropperOverlay } from '@/components/palette/EyedropperOverlay';
 import type { ScaleKey } from '@/components/palette/EditTabs';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { StripeBar } from '@/components/ui/StripeBar';
 import { Text } from '@/components/ui/Text';
-import { optionLabel, type ColorFilter } from '@/lib/color/colorModes';
+import { optionLabel, type ColorFilter, type RGB } from '@/lib/color/colorModes';
 import { extractColors, ExtractError, NoMatchError } from '@/lib/color/extract';
+import { replaceColor } from '@/lib/color/eyedropper';
 import { exportPalette, RESOLUTIONS } from '@/lib/export/exportPalette';
 import type { ExportResolution } from '@/lib/export/exportPalette';
 import {
@@ -63,6 +65,7 @@ export default function PaletteScreen() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [extracting, setExtracting] = useState(false);
   const [colorNotice, setColorNotice] = useState<string | null>(null);
+  const [eyedropperOpen, setEyedropperOpen] = useState(false);
   const [canvasMaxHeight, setCanvasMaxHeight] = useState(0);
   const [exportSheetVisible, setExportSheetVisible] = useState(false);
   const [exportState, setExportState] = useState<'idle' | 'exporting'>('idle');
@@ -238,6 +241,8 @@ export default function PaletteScreen() {
         // the look of the base for that count.
         updateConfig((prev) => ({
           paletteSize: newSize,
+          // Hand-picked swatches don't survive a re-extraction (ADR-0003).
+          ...(prev.colorMode === 'manual' ? { colorMode: 'auto' as const, colorOption: null } : {}),
           ...(prev.archetypeId === 'libre'
             ? {
                 ...NEUTRAL_SCALES,
@@ -259,6 +264,26 @@ export default function PaletteScreen() {
       }
     },
     [palette, config, updateConfig, reportNoMatch]
+  );
+
+  // Swaps one swatch for the picked colour, in place: same index, so Libre and the layouts keep pointing at it.
+  const handleEyedropperPick = useCallback(
+    async (index: number, rgb: RGB) => {
+      setEyedropperOpen(false);
+      if (!palette) return;
+      const colors = replaceColor(palette.colors, index, rgb);
+      try {
+        await updatePaletteColors(palette.id, colors);
+      } catch (err) {
+        Sentry.captureException(err);
+        return;
+      }
+      setPalette((p) => (p ? { ...p, colors } : p));
+      setColorNotice(null);
+      updateConfig({ colorMode: 'manual', colorOption: null });
+      trackEvent('eyedropper_used', {});
+    },
+    [palette, updateConfig],
   );
 
   // Re-extracts from the pixels that fit the chosen kind of colour. Only the libre layout is reset
@@ -459,16 +484,27 @@ export default function PaletteScreen() {
           if (filterFellBack) {
             reportNoMatch({ mode: config.colorMode, option: config.colorOption });
             updateConfig({ colorMode: 'auto', colorOption: null, freeformSwatches: [] });
+          } else if (config.colorMode === 'manual') {
+            updateConfig({ colorMode: 'auto', colorOption: null });
           }
         }}
         onPaletteSizeChange={handlePaletteSizeChange}
         onColorFilterChange={handleColorFilterChange}
+        onOpenEyedropper={() => setEyedropperOpen(true)}
         colorNotice={colorNotice}
         onResetLibreLayout={resetLibreLayout}
         paletteSizeChanging={extracting}
         onLockedPress={() => {
           router.push({ pathname: '/paywall', params: { trigger: 'watermark_tap' } });
         }}
+      />
+
+      <EyedropperOverlay
+        visible={eyedropperOpen}
+        thumbnailUri={palette.thumbnailUri}
+        colors={palette.colors}
+        onPick={handleEyedropperPick}
+        onClose={() => setEyedropperOpen(false)}
       />
 
       <View style={styles.exportBar}>

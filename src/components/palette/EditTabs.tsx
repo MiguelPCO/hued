@@ -95,6 +95,7 @@ interface Props {
   }) => void;
   onPaletteSizeChange: (paletteSize: number) => void;
   onColorFilterChange: (filter: ColorFilter) => void;
+  onOpenEyedropper: () => void;
   /** Why the last colour filter didn't apply (photo has none of that colour). */
   colorNotice?: string | null;
   onResetLibreLayout: () => void;
@@ -112,6 +113,7 @@ export function EditTabs({
   onImageUpdated,
   onPaletteSizeChange,
   onColorFilterChange,
+  onOpenEyedropper,
   colorNotice,
   onResetLibreLayout,
   paletteSizeChanging,
@@ -196,6 +198,7 @@ export function EditTabs({
             onFilterChange={onColorFilterChange}
             paletteSize={config.paletteSize ?? 5}
             onPaletteSizeChange={onPaletteSizeChange}
+            onOpenEyedropper={onOpenEyedropper}
             busy={paletteSizeChanging}
             notice={colorNotice}
           />

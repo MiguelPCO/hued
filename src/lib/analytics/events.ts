@@ -18,6 +18,7 @@ type EventMap = {
   extract_failed: { reason: string };
   extract_mode_selected: { mode: string; option: string };
   extract_mode_empty: { mode: string; option: string };
+  eyedropper_used: Record<string, never>;
 
   // Compose
   archetype_selected: { archetype_id: ArchetypeId };
